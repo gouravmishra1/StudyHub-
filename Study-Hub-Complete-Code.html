@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Study Hub By Gourav | Ultimate Live Ecosystem</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Firebase Realtime Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+  
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111726;
+      --card: #172033;
+      --card-border: #222f49;
+      --text: #f1f5f9;
+      --text-mute: #8e9db7;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      
+      /* Distinct Seat Colors */
+      --seat-free-bg: rgba(16, 185, 129, 0.12);
+      --seat-free-border: #10b981;
+      --seat-free-text: #34d399;
+      
+      --seat-mine-bg: #2563eb;
+      --seat-mine-border: #60a5fa;
+      --seat-mine-text: #ffffff;
+      
+      --seat-occ-bg: rgba(239, 68, 68, 0.18);
+      --seat-occ-border: #ef4444;
+      --seat-occ-text: #fca5a5;
+
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius: 12px;
+      --btn-radius: 8px;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --card-border: #e2e8f0;
+      --text: #0f172a;
+      --text-mute: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #059669;
+      --seat-free-bg: #ecfdf5;
+      --seat-free-border: #059669;
+      --seat-free-text: #065f46;
+      --seat-occ-bg: #fef2f2;
+      --seat-occ-border: #dc2626;
+      --seat-occ-text: #991b1b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-main); }
+    body { 
+      background: var(--bg); 
+      color: var(--text); 
+      min-height: 100vh; 
+      padding-bottom: 95px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient Animated Bottom Line */
+    body::after {
+      content: "";
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 200%;
+      height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #10b981, #ec4899, #3b82f6);
+      animation: bottomWave 6s linear infinite;
+      z-index: 60;
+    }
+    @keyframes bottomWave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--surface); border-bottom: 1px solid var(--card-border);
+      padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .menu-trigger { font-size: 20px; background: none; border: 0; color: var(--text); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+    .brand { font-weight: 800; font-size: 16px; }
+    .brand span { color: var(--primary); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .side-drawer {
+      position: fixed; top: 0; left: -320px; width: 300px; height: 100vh;
+      background: var(--surface); border-right: 1px solid var(--card-border);
+      z-index: 150; padding: 20px; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column; gap: 12px; overflow-y: auto;
+    }
+    .side-drawer.open { left: 0; }
+    .drawer-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      z-index: 140; display: none;
+    }
+    .drawer-overlay.active { display: block; }
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); }
+    .drawer-nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px;
+      color: var(--text); cursor: pointer; font-size: 13px; font-weight: 600; border: 0;
+      background: none; width: 100%; text-align: left; transition: 0.2s;
+    }
+    .drawer-nav-item:hover, .drawer-nav-item.active { background: var(--primary); color: #fff; }
+
+    main { max-width: 1020px; margin: auto; padding: 16px; }
+
+    .card {
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .card:hover { border-color: rgba(59, 130, 246, 0.4); }
+
+    .card-title {
+      font-size: 14px; font-weight: 700; display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 12px;
+    }
+
+    .badge {
+      font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700;
+      background: var(--primary); color: #fff; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .badge.admin { background: var(--warning); color: #000; }
+    .badge.custom-tag { background: #6366f1; }
+
+    .btn {
+      background: var(--primary); color: #fff; border: 0; padding: 8px 14px;
+      border-radius: var(--btn-radius); font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
+    }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text); }
+    .btn-outline:hover { background: var(--card-border); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-success { background: var(--accent); }
+
+    input, select, textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--card-border);
+      color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 13px;
+      outline: none; margin-bottom: 10px;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+
+    /* Distinct Color Seating Grid */
+    .seat-legend {
+      display: flex; gap: 14px; margin-bottom: 12px; font-size: 11px; font-weight: 600;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    .seat-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+      gap: 10px; margin-top: 10px;
+    }
+    .seat {
+      aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; font-size: 11px; cursor: pointer;
+      font-weight: 700; transition: 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); position: relative; 
+      border: 1.5px solid var(--seat-free-border);
+      background: var(--seat-free-bg); color: var(--seat-free-text);
+    }
+    .seat:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+    .seat.mine {
+      background: var(--seat-mine-bg) !important; border: 2px solid var(--seat-mine-border) !important;
+      color: var(--seat-mine-text) !important; box-shadow: 0 0 15px rgba(37, 99, 235, 0.6);
+    }
+    .seat.occupied {
+      background: var(--seat-occ-bg) !important; border: 1.5px solid var(--seat-occ-border) !important;
+      color: var(--seat-occ-text) !important; cursor: not-allowed;
+    }
+    .seat .u-name { font-size: 9px; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; font-weight: 500; }
+
+    /* Video Meeting Grid */
+    .video-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px; margin-top: 10px;
+    }
+    .video-tile {
+      background: #000; border-radius: 10px; aspect-ratio: 16/10; position: relative;
+      overflow: hidden; border: 1px solid var(--card-border); display: flex;
+      align-items: center; justify-content: center;
+    }
+    .video-tile video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .video-avatar {
+      width: 50px; height: 50px; border-radius: 50%; background: var(--card-border);
+      display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700;
+    }
+    .video-badge {
+      position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7);
+      font-size: 11px; padding: 3px 8px; border-radius: 4px; backdrop-filter: blur(4px);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .video-controls-overlay {
+      position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 5;
+    }
+    .btn-icon {
+      background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
+    }
+    .btn-icon.off { background: var(--danger); }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    .clock-display {
+      font-family: var(--font-mono); font-size: 34px; font-weight: 700;
+      text-align: center; margin: 8px 0; color: var(--accent);
+    }
+    .history-row {
+      display: flex; justify-content: space-between; padding: 10px 0;
+      border-bottom: 1px solid var(--card-border); font-size: 13px;
+    }
+
+    /* Target Items Styling */
+    .target-item {
+      background: var(--surface); border: 1px solid var(--card-border);
+      border-radius: 8px; padding: 10px 12px; display: flex;
+      justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .target-item.completed { opacity: 0.6; text-decoration: line-through; }
+
+    /* Multiplayer Tic-Tac-Toe */
+    .ttt-board {
+      display: grid; grid-template-columns: repeat(3, 80px); gap: 6px;
+      justify-content: center; margin: 12px auto;
+    }
+    .ttt-cell {
+      width: 80px; height: 80px; background: var(--surface);
+      border: 2px solid var(--card-border); border-radius: 8px;
+      font-size: 28px; font-weight: 800; display: flex;
+      align-items: center; justify-content: center; cursor: pointer;
+    }
+    .ttt-cell:hover { border-color: var(--primary); }
+
+    nav.bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
+      border-top: 1px solid var(--card-border); display: flex; z-index: 40;
+    }
+    nav.bottom-nav button {
+      flex: 1; padding: 12px 4px; background: none; border: 0; color: var(--text-mute);
+      font-size: 11px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; gap: 4px; transition: color 0.2s;
+    }
+    nav.bottom-nav button.active { color: var(--primary); border-top: 2px solid var(--primary); }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 22px; width: 100%; max-width: 440px; text-align: left;
+      max-height: 90vh; overflow-y: auto;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .toast {
+      position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%);
+      background: #111827; color: #fff; padding: 8px 16px; border-radius: 30px;
+      font-size: 12px; border: 1px solid #374151; z-index: 200; pointer-events: none;
+      opacity: 0; transition: 0.3s;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+
+  <!-- Side Drawer (Hamburger Menu) -->
+  <div class="side-drawer" id="sideDrawer">
+    <div class="drawer-header">
+      <div style="font-weight: 800;">Ecosystem Menu</div>
+      <button class="btn btn-outline btn-sm" id="closeDrawerBtn">✕</button>
+    </div>
+
+    <div style="font-size: 11px; text-transform: uppercase; color: var(--text-mute); font-weight: 700;">Navigation</div>
+    <button class="drawer-nav-item active" data-tab="tab-library">🏛️ Study Hall & Video</button>
+    <button class="drawer-nav-item" data-tab="tab-targets">🎯 Daily Targets & Timers</button>
+    <button class="drawer-nav-item" data-tab="tab-music">🎵 Custom & Global Radio</button>
+    <button class="drawer-nav-item" data-tab="tab-game">🎮 Live Multiplayer Game</button>
+    <button class="drawer-nav-item" data-tab="tab-feedback">💡 Student Suggestion Box</button>
+    <button class="drawer-nav-item" data-tab="tab-history">📊 Analytics & Logs</button>
+    <button class="drawer-nav-item" data-tab="tab-pdfs">📑 Vault Documents</button>
+    <button class="drawer-nav-item" data-tab="tab-profile">👤 Profile & Account</button>
+    <button class="drawer-nav-item" id="drawerMonitorBtn" data-tab="tab-monitor" style="display:none; color: var(--warning);">🛡️ Monitor Inspector</button>
+
+    <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid var(--card-border);">
+      <button class="btn btn-danger" style="width:100%; justify-content:center;" id="drawerLogoutBtn">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <button class="menu-trigger" id="openDrawerBtn">☰</button>
+      <div class="brand">📚 Study Hub <span>By Gourav</span></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" id="pipBtn" title="Picture-in-Picture Mini View">📌 Mini Mode</button>
+      <span id="roleBadge" class="badge">Student</span>
+      <button class="btn btn-outline btn-sm" id="themeToggleBtn">🌓</button>
+      <button class="btn btn-danger btn-sm" id="quickLogoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <!-- Login Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <h2 style="font-size: 18px; margin-bottom: 4px;">Study Hub Login</h2>
+      <p style="color: var(--text-mute); font-size: 12px; margin-bottom: 16px;">Sign in to enter the virtual study rooms</p>
+      
+      <div id="authAlert" style="display:none; color: var(--danger); font-size: 12px; margin-bottom: 10px;"></div>
+
+      <input type="email" id="authEmail" placeholder="Email Address">
+      <input type="password" id="authPass" placeholder="Password">
+      <input type="text" id="authName" placeholder="Full Name" style="display:none;">
+
+      <button class="btn" style="width:100%; justify-content:center;" id="loginActionBtn">Sign In</button>
+      
+      <div style="margin-top: 14px; font-size: 12px; text-align: center;">
+        <span id="authToggleText">Don't have an account?</span> 
+        <a href="#" id="authToggleLink" style="color:var(--primary); font-weight:600;">Request Access</a>
+      </div>
+      
+      <div style="margin-top: 14px; font-size: 11px; color: var(--text-mute); background: var(--card); padding: 8px; border-radius: 6px;">
+        👑 <b>Monitor Credentials:</b><br>
+        Email: <code>gourav@studyhub.com</code><br>
+        Pass: <code>Gourav@2026</code>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- GLOBAL BROADCAST BAR -->
+    <div class="card" id="globalRadioBanner" style="border-left: 4px solid var(--accent); display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span class="badge" style="background:var(--accent);">📻 Monitor Radio Live</span>
+          <span style="font-size:12px; margin-left:8px;" id="globalRadioTitle">Gourav is broadcasting study music</span>
+        </div>
+        <button class="btn btn-sm btn-outline" id="toggleGlobalAudioBtn">🔊 Mute</button>
+      </div>
+      <iframe id="globalYtPlayer" width="1" height="1" style="display:none;" frameborder="0" allow="autoplay"></iframe>
+    </div>
+
+    <!-- TAB 1: LIBRARY & VIDEO ROOM -->
+    <section id="tab-library" class="tab-content active">
+      <div class="card">
+        <div class="card-title">
+          <span>Current Desk: <b id="currentDeskLabel" style="color: var(--primary);">Unassigned</b></span>
+          <span id="liveStatusTag" class="badge" style="background:#4b5563;">Idle</span>
+        </div>
+        <div class="clock-display" id="sessionTimer">00:00:00</div>
+        <div class="row" style="justify-content: center;">
+          <button class="btn btn-outline" id="pauseStudyBtn">Pause</button>
+          <button class="btn btn-danger" id="leaveDeskBtn">Leave Desk</button>
+        </div>
+      </div>
+
+      <!-- Live Video Meeting Grid with Audio/Video Controls -->
+      <div class="card">
+        <div class="card-title">
+          <span>Live Study Room (All Students Video Grid)</span>
+          <div class="row">
+            <button class="btn btn-outline btn-sm" id="toggleCamBtn">📹 Camera</button>
+            <button class="btn btn-outline btn-sm" id="toggleMicBtn">🎤 Mic</button>
+          </div>
+        </div>
+
+        <div class="video-grid" id="videoGrid">
+          <!-- User Tile -->
+          <div class="video-tile" id="userVideoTile">
+            <div class="video-controls-overlay">
+              <button class="btn-icon off" id="tileMicBtn" title="Toggle Mic">🔇</button>
+              <button class="btn-icon off" id="tileCamBtn" title="Toggle Camera">📹</button>
+            </div>
+            <video id="userCam" autoplay playsinline muted style="display:none;"></video>
+            <div class="video-avatar" id="userCamPlaceholder">👤</div>
+            <div class="video-badge"><span class="live-dot"></span><span id="userCamBadge">You</span></div>
+          </div>
+          <!-- Other Students Tiles -->
+          <div id="cohortVideoTiles" style="display:contents;"></div>
+        </div>
+      </div>
+
+      <!-- Desk Matrix with Color Legend -->
+      <div class="card">
+        <div class="card-title">
+          <span>Reading Hall Desks Matrix</span>
+          <span style="font-size: 11px; color: var(--text-mute);">Tap green desk to sit</span>
+        </div>
+
+        <div class="seat-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div> Free (Khali)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--primary);"></div> Your Seat (Aapki)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--danger);"></div> Occupied (Full)</div>
+        </div>
+
+        <div class="seat-grid" id="seatMatrix"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: TODAY TARGETS & SUBJECT TIMERS -->
+    <section id="tab-targets" class="tab-content">
+      <div class="card">
+        <div class="card-title">🎯 Today's Study Targets & Subject Timers</div>
+        <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 12px;">Add what you plan to study today and set a countdown timer for that specific subject.</p>
+        
+        <div class="row" style="margin-bottom: 10px;">
+          <input type="text" id="targetSubject" placeholder="Subject / Chapter Name (e.g. Modern History)" style="margin-bottom:0;">
+          <input type="number" id="targetDuration" placeholder="Duration (Mins, Optional)" style="width:140px; margin-bottom:0;">
+          <button class="btn btn-success" id="addTargetBtn">+ Add</button>
+        </div>
+
+        <div id="targetListContainer" style="margin-top: 14px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: YOUTUBE MUSIC & BROADCAST -->
+    <section id="tab-music" class="tab-content">
+      <div class="card">
+        <div class="card-title">Custom & Global Radio</div>
+        
+        <div style="background: var(--surface); padding: 12px; border-radius: 8px; margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Paste Your Personal Song URL:</label>
+          <div class="row">
+            <input type="text" id="customYtUrl" placeholder="https://www.youtube.com/watch?v=... or share link" style="margin-bottom:0;">
+            <button class="btn btn-success" id="playCustomYtBtn">Play</button>
+          </div>
+        </div>
+
+        <div style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: #000; margin-bottom: 12px;">
+          <iframe id="ytPlayerFrame" width="100%" height="100%" src="https://www.youtube-nocookie.com/embed/jfKfPfyJRdk" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+
+        <!-- Monitor Global Broadcast Control -->
+        <div id="monitorBroadcastSection" style="display:none; background:rgba(245, 158, 11, 0.1); border:1px solid var(--warning); padding:12px; border-radius:8px; margin-top:14px;">
+          <div style="font-size:13px; font-weight:700; color:var(--warning); margin-bottom:6px;">👑 Monitor Broadcast to All Students:</div>
+          <div class="row">
+            <input type="text" id="broadcastUrl" placeholder="YouTube URL to broadcast across all students" style="margin-bottom:0;">
+            <button class="btn btn-warning" id="startBroadcastBtn" style="color:#000;">Broadcast</button>
+            <button class="btn btn-outline btn-sm" id="stopBroadcastBtn">Stop</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: MULTIPLAYER GAME -->
+    <section id="tab-game" class="tab-content">
+      <div class="card" style="text-align: center;">
+        <div class="card-title">🎮 Live Multiplayer Break Game: Tic-Tac-Toe</div>
+        <p style="font-size: 12px; color: var(--text-mute);">Play live against another online student during your study breaks.</p>
+        
+        <div style="margin: 10px 0; font-size: 13px;">
+          Status: <b id="tttStatus" style="color:var(--primary);">Waiting for players</b>
+        </div>
+        
+        <div class="row" style="justify-content: center; margin-bottom: 12px;">
+          <button class="btn btn-sm btn-outline" id="joinXBtn">Join as Player X</button>
+          <button class="btn btn-sm btn-outline" id="joinOBtn">Join as Player O</button>
+          <button class="btn btn-sm btn-danger" id="resetTttBtn">Reset Board</button>
+        </div>
+
+        <div class="ttt-board" id="tttBoard"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: STUDENT SUGGESTIONS -->
+    <section id="tab-feedback" class="tab-content">
+      <div class="card">
+        <div class="card-title">💡 Student Suggestion & Song Request Box</div>
+        <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 12px;">Have an idea or want a specific study track broadcasted? Submit it directly to Gourav.</p>
+        
+        <label style="font-size: 12px; font-weight: 600;">Type of Suggestion:</label>
+        <select id="suggestType">
+          <option value="Feature / Improvement">Feature / App Improvement</option>
+          <option value="Study Track Request">Study Track / Song Request</option>
+          <option value="General Feedback">General Feedback</option>
+        </select>
+
+        <label style="font-size: 12px; font-weight: 600;">Your Message / YouTube Link:</label>
+        <textarea id="suggestMessage" rows="3" placeholder="Write your suggestion or paste study track link..."></textarea>
+        
+        <button class="btn btn-primary" id="submitSuggestBtn">Submit Suggestion</button>
+      </div>
+    </section>
+
+    <!-- TAB 6: ANALYTICS -->
+    <section id="tab-history" class="tab-content">
+      <div class="card">
+        <div class="card-title">Study History & Metrics</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 14px;">
+          <div style="background:var(--surface); padding:12px; border-radius:8px; text-align:center;">
+            <div style="font-size:11px; color:var(--text-mute);">Today's Focus</div>
+            <div style="font-size:18px; font-weight:700; color:var(--accent);" id="todayLogStat">0h 0m</div>
+          </div>
+          <div style="background:var(--surface); padding:12px; border-radius:8px; text-align:center;">
+            <div style="font-size:11px; color:var(--text-mute);">Lifetime Hours</div>
+            <div style="font-size:18px; font-weight:700; color:var(--primary);" id="totalLogStat">0h 0m</div>
+          </div>
+        </div>
+        <div class="card-title" style="font-size: 13px;">Daily Logs</div>
+        <div id="historyLogContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 7: PDF VAULT -->
+    <section id="tab-pdfs" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>Persistent Study Documents</span>
+          <button class="btn btn-sm" id="uploadPdfTrigger">+ Upload PDF</button>
+        </div>
+        <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none;">
+        <div id="pdfShelfContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 8: PROFILE -->
+    <section id="tab-profile" class="tab-content">
+      <div class="card">
+        <div class="card-title">Profile & Security Settings</div>
+        <label style="font-size: 12px; font-weight: 600;">Display Name:</label>
+        <input type="text" id="profName">
+        <label style="font-size: 12px; font-weight: 600;">Registered Email (Read-only):</label>
+        <input type="text" id="profEmail" readonly style="opacity: 0.7;">
+        <label style="font-size: 12px; font-weight: 600;">Change Password:</label>
+        <input type="password" id="profPass">
+        <label style="font-size: 12px; font-weight: 600;">Target Goal / Exam:</label>
+        <input type="text" id="profGoal" placeholder="e.g. UPSC / BPSC / Software Developer">
+        <button class="btn btn-primary" id="saveProfileBtn">Save Profile Changes</button>
+      </div>
+    </section>
+
+    <!-- TAB 9: MONITOR DASHBOARD -->
+    <section id="tab-monitor" class="tab-content">
+      <div class="card" style="border-left: 4px solid var(--warning);">
+        <div class="card-title">
+          <span>Monitor & Ecosystem Management</span>
+          <span class="badge admin">Super-Admin</span>
+        </div>
+        
+        <h4 style="font-size: 13px; margin: 10px 0 8px;">Pending Join Requests (<span id="pendingCount">0</span>)</h4>
+        <div id="pendingList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        
+        <h4 style="font-size: 13px; margin: 16px 0 8px;">Received Student Suggestions (<span id="suggestionCount">0</span>)</h4>
+        <div id="receivedSuggestionsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+        <h4 style="font-size: 13px; margin: 16px 0 8px;">Approved Student Directory</h4>
+        <div id="acceptedMembersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button class="active" data-tab="tab-library">🏛️<span>Library</span></button>
+    <button data-tab="tab-targets">🎯<span>Targets</span></button>
+    <button data-tab="tab-music">🎵<span>Radio</span></button>
+    <button data-tab="tab-game">🎮<span>Game</span></button>
+    <button data-tab="tab-feedback">💡<span>Suggest</span></button>
+    <button id="quickMonitorBtn" data-tab="tab-monitor" style="display:none;">🛡️<span>Monitor</span></button>
+  </nav>
+
+  <div id="toast" class="toast">Notice</div>
+
+  <!-- Picture-in-Picture Mini View -->
+  <canvas id="pipCanvas" width="400" height="240" style="display:none;"></canvas>
+  <video id="pipVideo" autoplay playsinline muted style="display:none;"></video>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCUTzeUlLBomaqcM-VtkdjeRsqma7sDpVk",
+      authDomain: "study-hub-1fae3.firebaseapp.com",
+      databaseURL: "https://study-hub-1fae3-default-rtdb.firebaseio.com",
+      projectId: "study-hub-1fae3",
+      storageBucket: "study-hub-1fae3.firebasestorage.app",
+      messagingSenderId: "804818789246",
+      appId: "1:804818789246:web:17495ac85aa93965e6492f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const rtdb = firebase.database();
+
+    const OWNER_EMAIL = "gourav@studyhub.com";
+    const OWNER_PASS = "Gourav@2026";
+    const TOTAL_DESKS = 24;
+
+    let state = {
+      currentUser: null,
+      isOwner: false,
+      mySeat: null,
+      studySince: 0,
+      isPaused: false,
+      dailyLogs: {},
+      users: [],
+      pendingUsers: [],
+      roomOccupants: {},
+      suggestions: [],
+      targets: [],
+      broadcast: null,
+      ttt: { board: Array(9).fill(""), turn: "X", pX: "", pO: "" }
+    };
+
+    let localMediaStream = null;
+    let isCamOn = false;
+    let isMicOn = false;
+    let isGlobalMuted = false;
+
+    // Load Local & Cloud Realtime Listener
+    function loadInitial() {
+      const data = localStorage.getItem("studyhub_v7_local");
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          state.dailyLogs = parsed.dailyLogs || {};
+          state.targets = parsed.targets || [];
+        } catch(e){}
+      }
+
+      rtdb.ref("ecosystem").on("value", snapshot => {
+        const cloudData = snapshot.val();
+        if (cloudData) {
+          state.users = cloudData.users || [];
+          state.pendingUsers = cloudData.pendingUsers || [];
+          state.roomOccupants = cloudData.roomOccupants || {};
+          state.suggestions = cloudData.suggestions || [];
+          state.broadcast = cloudData.broadcast || null;
+          state.ttt = cloudData.ttt || { board: Array(9).fill(""), turn: "X", pX: "", pO: "" };
+
+          // Cross-Device Name & Profile Refresh
+          if (state.currentUser && !state.isOwner) {
+            const updatedMe = state.users.find(u => u.email === state.currentUser.email);
+            if (updatedMe) {
+              state.currentUser.name = updatedMe.name;
+              state.currentUser.pass = updatedMe.pass;
+              state.currentUser.goal = updatedMe.goal;
+              document.getElementById("roleBadge").textContent = updatedMe.name;
+              document.getElementById("userCamBadge").textContent = updatedMe.name + " (You)";
+            }
+          }
+
+          renderSeats();
+          renderMeetingGrid();
+          renderMonitorPanel();
+          handleBroadcastSync();
+          renderTttBoard();
+        }
+      });
+    }
+
+    function syncToCloud() {
+      rtdb.ref("ecosystem").set({
+        users: state.users,
+        pendingUsers: state.pendingUsers,
+        roomOccupants: state.roomOccupants,
+        suggestions: state.suggestions,
+        broadcast: state.broadcast,
+        ttt: state.ttt
+      });
+      localStorage.setItem("studyhub_v7_local", JSON.stringify({
+        dailyLogs: state.dailyLogs,
+        targets: state.targets
+      }));
+    }
+    loadInitial();
+
+    // Drawer Setup
+    const sideDrawer = document.getElementById("sideDrawer");
+    const drawerOverlay = document.getElementById("drawerOverlay");
+    document.getElementById("openDrawerBtn").onclick = () => { sideDrawer.classList.add("open"); drawerOverlay.classList.add("active"); };
+    function closeDrawer() { sideDrawer.classList.remove("open"); drawerOverlay.classList.remove("active"); }
+    document.getElementById("closeDrawerBtn").onclick = closeDrawer;
+    drawerOverlay.onclick = closeDrawer;
+
+    // Authentication Logic
+    let isRegisterMode = false;
+    const authModal = document.getElementById("authModal");
+    const authToggleLink = document.getElementById("authToggleLink");
+    const authToggleText = document.getElementById("authToggleText");
+    const authName = document.getElementById("authName");
+    const loginActionBtn = document.getElementById("loginActionBtn");
+    const authAlert = document.getElementById("authAlert");
+
+    authToggleLink.onclick = (e) => {
+      e.preventDefault();
+      isRegisterMode = !isRegisterMode;
+      authName.style.display = isRegisterMode ? "block" : "none";
+      loginActionBtn.textContent = isRegisterMode ? "Request Access" : "Sign In";
+      authToggleText.textContent = isRegisterMode ? "Already registered?" : "Don't have an account?";
+      authToggleLink.textContent = isRegisterMode ? "Sign In" : "Request Access";
+      authAlert.style.display = "none";
+    };
+
+    loginActionBtn.onclick = () => {
+      const email = document.getElementById("authEmail").value.trim().toLowerCase();
+      const pass = document.getElementById("authPass").value;
+      const name = authName.value.trim();
+
+      if (!email || !pass) return showAuthAlert("Please provide both email and password.");
+
+      if (email === OWNER_EMAIL && pass === OWNER_PASS) {
+        state.currentUser = { email, name: "Gourav (Owner)", pass: OWNER_PASS, role: "owner", tag: "Super Monitor" };
+        state.isOwner = true;
+        authSuccess();
+        return;
+      }
+
+      if (isRegisterMode) {
+        if (!name) return showAuthAlert("Full name is required.");
+        if (state.users.some(u => u.email === email) || state.pendingUsers.some(u => u.email === email)) {
+          return showAuthAlert("This email is already registered or pending.");
+        }
+        state.pendingUsers.push({ email, pass, name, id: Date.now(), tag: "Student", goal: "Self Study", logs: {} });
+        syncToCloud();
+        alert("Registration request submitted to cloud! Waiting for Gourav to approve.");
+        authToggleLink.click();
+      } else {
+        const user = state.users.find(u => u.email === email && u.pass === pass);
+        if (!user) {
+          if (state.pendingUsers.some(u => u.email === email)) {
+            return showAuthAlert("Account approval is pending by Monitor.");
+          }
+          return showAuthAlert("Invalid credentials.");
+        }
+        state.currentUser = user;
+        state.isOwner = false;
+        authSuccess();
+      }
+    };
+
+    function showAuthAlert(msg) { authAlert.textContent = msg; authAlert.style.display = "block"; }
+
+    function authSuccess() {
+      authModal.style.display = "none";
+      document.getElementById("roleBadge").textContent = state.isOwner ? "👑 Monitor" : state.currentUser.name;
+      if (state.isOwner) {
+        document.getElementById("roleBadge").classList.add("admin");
+        document.getElementById("drawerMonitorBtn").style.display = "flex";
+        document.getElementById("quickMonitorBtn").style.display = "flex";
+        document.getElementById("monitorBroadcastSection").style.display = "block";
+      }
+      document.getElementById("userCamBadge").textContent = state.currentUser.name + " (You)";
+      document.getElementById("profName").value = state.currentUser.name;
+      document.getElementById("profEmail").value = state.currentUser.email;
+      document.getElementById("profPass").value = state.currentUser.pass;
+      document.getElementById("profGoal").value = state.currentUser.goal || "";
+
+      initApp();
+      toast("Welcome back, " + state.currentUser.name);
+    }
+
+    function doLogout() {
+      bankTime();
+      if (state.mySeat) {
+        delete state.roomOccupants[state.mySeat];
+        syncToCloud();
+      }
+      if (localMediaStream) {
+        localMediaStream.getTracks().forEach(t => t.stop());
+      }
+      location.reload();
+    }
+    document.getElementById("quickLogoutBtn").onclick = doLogout;
+    document.getElementById("drawerLogoutBtn").onclick = doLogout;
+
+    function initApp() {
+      renderSeats();
+      renderMeetingGrid();
+      renderMonitorPanel();
+      renderHistory();
+      renderTargets();
+      startTicker();
+    }
+
+    // Unstoppable Stopwatch Time Calculations
+    function getTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function bankTime() {
+      if (state.mySeat && !state.isPaused && state.studySince) {
+        const elapsed = (Date.now() - state.studySince) / 1000;
+        const key = getTodayKey();
+        state.dailyLogs[key] = (state.dailyLogs[key] || 0) + elapsed;
+        state.studySince = Date.now();
+        syncToCloud();
+      }
+    }
+
+    function totalToday() {
+      let t = state.dailyLogs[getTodayKey()] || 0;
+      if (state.mySeat && !state.isPaused && state.studySince) {
+        t += (Date.now() - state.studySince) / 1000;
+      }
+      return t;
+    }
+
+    // MULTI-DEVICE CLEANUP ON CLAIMING SEAT
+    function claimSeat(seatId) {
+      if (state.mySeat === seatId) return;
+
+      bankTime();
+
+      // Ensure no 2 seats for the same account across any devices
+      Object.keys(state.roomOccupants).forEach(s => {
+        if (state.roomOccupants[s] && state.roomOccupants[s].email === state.currentUser.email) {
+          delete state.roomOccupants[s];
+        }
+      });
+
+      state.mySeat = seatId;
+      state.isPaused = false;
+      state.studySince = Date.now();
+      
+      state.roomOccupants[seatId] = {
+        name: state.currentUser.name,
+        email: state.currentUser.email,
+        tag: state.currentUser.tag || "Student",
+        since: state.studySince,
+        cam: isCamOn,
+        mic: isMicOn
+      };
+      
+      syncToCloud();
+
+      document.getElementById("currentDeskLabel").textContent = seatId;
+      document.getElementById("liveStatusTag").textContent = "Studying";
+      document.getElementById("liveStatusTag").style.background = "var(--accent)";
+
+      renderSeats();
+      renderMeetingGrid();
+      toast("Desk " + seatId + " occupied.");
+    }
+
+    function renderSeats() {
+      const container = document.getElementById("seatMatrix");
+      container.innerHTML = "";
+      
+      for (let i = 1; i <= TOTAL_DESKS; i++) {
+        const seatId = "D-" + String(i).padStart(2, '0');
+        const occupant = state.roomOccupants[seatId];
+        const isMine = state.currentUser && occupant && occupant.email === state.currentUser.email;
+        if (isMine) state.mySeat = seatId;
+
+        const d = document.createElement("div");
+        d.className = "seat" + (isMine ? " mine" : occupant ? " occupied" : "");
+        
+        let label = "Free";
+        if (isMine) label = "You";
+        else if (occupant) label = occupant.name;
+
+        d.innerHTML = `<span>${seatId}</span><span class="u-name">${label}</span>`;
+        
+        if (!occupant || isMine) {
+          d.onclick = () => claimSeat(seatId);
+        }
+        container.appendChild(d);
+      }
+    }
+
+    document.getElementById("leaveDeskBtn").onclick = () => {
+      if (!state.mySeat) return toast("No desk assigned.");
+      bankTime();
+      delete state.roomOccupants[state.mySeat];
+      state.mySeat = null;
+      state.studySince = 0;
+      state.isPaused = false;
+      syncToCloud();
+
+      document.getElementById("currentDeskLabel").textContent = "Unassigned";
+      document.getElementById("liveStatusTag").textContent = "Idle";
+      document.getElementById("liveStatusTag").style.background = "#4b5563";
+      document.getElementById("sessionTimer").textContent = "00:00:00";
+      document.title = "Study Hub By Gourav";
+
+      renderSeats();
+      renderMeetingGrid();
+      renderHistory();
+      toast("Desk released.");
+    };
+
+    document.getElementById("pauseStudyBtn").onclick = () => {
+      if (!state.mySeat) return;
+      bankTime();
+      state.isPaused = !state.isPaused;
+      state.studySince = Date.now();
+      document.getElementById("pauseStudyBtn").textContent = state.isPaused ? "Resume" : "Pause";
+      document.getElementById("liveStatusTag").textContent = state.isPaused ? "Paused" : "Studying";
+      document.getElementById("liveStatusTag").style.background = state.isPaused ? "var(--warning)" : "var(--accent)";
+      syncToCloud();
+    };
+
+    function startTicker() {
+      setInterval(() => {
+        const todaySeconds = totalToday();
+        document.getElementById("todayLogStat").textContent = fmtHours(todaySeconds);
+
+        if (state.mySeat && !state.isPaused && state.studySince) {
+          const currentDuration = Math.floor((Date.now() - state.studySince) / 1000);
+          const formatted = fmtTime(currentDuration);
+          document.getElementById("sessionTimer").textContent = formatted;
+          document.title = `(${formatted}) Study Hub`;
+        }
+
+        // Subject countdowns update
+        state.targets.forEach(t => {
+          if (t.running && t.remaining > 0) {
+            t.remaining--;
+            renderTargets();
+          }
+        });
+      }, 1000);
+    }
+
+    function fmtTime(s) {
+      s = Math.max(0, Math.floor(s));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    }
+
+    function fmtHours(s) {
+      s = Math.max(0, Math.floor(s));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      return `${h}h ${m}m`;
+    }
+
+    // Media Permissions and Handling
+    async function initUserMedia() {
+      if (localMediaStream) return localMediaStream;
+      try {
+        localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localMediaStream.getAudioTracks().forEach(t => t.enabled = false);
+        isMicOn = false;
+        isCamOn = true;
+        
+        const video = document.getElementById("userCam");
+        video.srcObject = localMediaStream;
+        video.style.display = "block";
+        document.getElementById("userCamPlaceholder").style.display = "none";
+        updateControlsUI();
+        return localMediaStream;
+      } catch(err) {
+        try {
+          localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          isCamOn = true;
+          isMicOn = false;
+          const video = document.getElementById("userCam");
+          video.srcObject = localMediaStream;
+          video.style.display = "block";
+          document.getElementById("userCamPlaceholder").style.display = "none";
+          updateControlsUI();
+          return localMediaStream;
+        } catch(e) {
+          toast("Please allow camera/mic permissions in Chrome Settings.");
+          return null;
+        }
+      }
+    }
+
+    function toggleCamera() {
+      if (!localMediaStream) { initUserMedia(); return; }
+      const videoTrack = localMediaStream.getVideoTracks()[0];
+      if (videoTrack) {
+        isCamOn = !videoTrack.enabled;
+        videoTrack.enabled = isCamOn;
+        document.getElementById("userCam").style.display = isCamOn ? "block" : "none";
+        document.getElementById("userCamPlaceholder").style.display = isCamOn ? "none" : "flex";
+        updateControlsUI();
+        broadcastMediaState();
+      }
+    }
+
+    function toggleMicrophone() {
+      if (!localMediaStream) { initUserMedia(); return; }
+      const audioTrack = localMediaStream.getAudioTracks()[0];
+      if (audioTrack) {
+        isMicOn = !audioTrack.enabled;
+        audioTrack.enabled = isMicOn;
+        updateControlsUI();
+        broadcastMediaState();
+        toast(isMicOn ? "Microphone Unmuted 🎙️" : "Microphone Muted 🔇");
+      }
+    }
+
+    function updateControlsUI() {
+      const camBtn = document.getElementById("toggleCamBtn");
+      const micBtn = document.getElementById("toggleMicBtn");
+      const tCamBtn = document.getElementById("tileCamBtn");
+      const tMicBtn = document.getElementById("tileMicBtn");
+
+      if (camBtn) camBtn.textContent = isCamOn ? "📹 Cam Off" : "📹 Cam On";
+      if (micBtn) micBtn.textContent = isMicOn ? "🎤 Mic Mute" : "🎤 Mic On";
+      if (tCamBtn) { tCamBtn.className = "btn-icon" + (isCamOn ? "" : " off"); tCamBtn.textContent = isCamOn ? "📹" : "🚫"; }
+      if (tMicBtn) { tMicBtn.className = "btn-icon" + (isMicOn ? "" : " off"); tMicBtn.textContent = isMicOn ? "🎤" : "🔇"; }
+    }
+
+    function broadcastMediaState() {
+      if (state.mySeat && state.roomOccupants[state.mySeat]) {
+        state.roomOccupants[state.mySeat].cam = isCamOn;
+        state.roomOccupants[state.mySeat].mic = isMicOn;
+        syncToCloud();
+      }
+    }
+
+    document.getElementById("toggleCamBtn").onclick = toggleCamera;
+    document.getElementById("toggleMicBtn").onclick = toggleMicrophone;
+    document.getElementById("tileCamBtn").onclick = toggleCamera;
+    document.getElementById("tileMicBtn").onclick = toggleMicrophone;
+
+    function renderMeetingGrid() {
+      const container = document.getElementById("cohortVideoTiles");
+      container.innerHTML = "";
+
+      Object.keys(state.roomOccupants).forEach(seatId => {
+        const occ = state.roomOccupants[seatId];
+        if (state.currentUser && occ.email === state.currentUser.email) return;
+
+        const tile = document.createElement("div");
+        tile.className = "video-tile";
+        tile.innerHTML = `
+          <div class="video-controls-overlay">
+            <span class="btn-icon ${occ.mic ? '' : 'off'}">${occ.mic ? '🎤' : '🔇'}</span>
+            <span class="btn-icon ${occ.cam ? '' : 'off'}">${occ.cam ? '📹' : '🚫'}</span>
+          </div>
+          <div class="video-avatar">${occ.name.charAt(0).toUpperCase()}</div>
+          <div class="video-badge">
+            <span class="live-dot"></span>
+            <span>${occ.name} · ${seatId} <b style="color:var(--primary)">[${occ.tag||'Student'}]</b></span>
+          </div>
+        `;
+        container.appendChild(tile);
+      });
+    }
+
+    // TARGETS & DEDICATED SUBJECT TIMERS
+    document.getElementById("addTargetBtn").onclick = () => {
+      const sub = document.getElementById("targetSubject").value.trim();
+      const mins = parseInt(document.getElementById("targetDuration").value) || 0;
+      if (!sub) return toast("Please enter a subject / target name");
+
+      state.targets.push({
+        id: Date.now(),
+        subject: sub,
+        totalSeconds: mins * 60,
+        remaining: mins * 60,
+        running: false,
+        done: false
+      });
+      document.getElementById("targetSubject").value = "";
+      document.getElementById("targetDuration").value = "";
+      renderTargets();
+      syncToCloud();
+      toast("Target added!");
+    };
+
+    function renderTargets() {
+      const box = document.getElementById("targetListContainer");
+      box.innerHTML = !state.targets.length ? `<div style="font-size:12px; color:var(--text-mute);">No active study targets. Add your first goal above!</div>` : "";
+
+      state.targets.forEach((t, idx) => {
+        const item = document.createElement("div");
+        item.className = "target-item" + (t.done ? " completed" : "");
+        const timerText = t.totalSeconds > 0 ? fmtTime(t.remaining) : "Open Timer";
+
+        item.innerHTML = `
+          <div>
+            <b>${t.subject}</b><br>
+            <span style="font-family:var(--font-mono); font-size:12px; color:var(--primary);">${timerText}</span>
+          </div>
+          <div class="row">
+            ${t.totalSeconds > 0 && !t.done ? `<button class="btn btn-sm btn-outline" onclick="toggleTargetTimer(${idx})">${t.running ? 'Pause' : 'Start'}</button>` : ''}
+            <button class="btn btn-sm ${t.done ? 'btn-outline' : 'btn-success'}" onclick="markTargetDone(${idx})">${t.done ? '↩️' : '✓ Done'}</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteTarget(${idx})">✕</button>
+          </div>
+        `;
+        box.appendChild(item);
+      });
+    }
+
+    window.toggleTargetTimer = (idx) => {
+      state.targets[idx].running = !state.targets[idx].running;
+      renderTargets();
+      syncToCloud();
+    };
+
+    window.markTargetDone = (idx) => {
+      state.targets[idx].done = !state.targets[idx].done;
+      state.targets[idx].running = false;
+      renderTargets();
+      syncToCloud();
+    };
+
+    window.deleteTarget = (idx) => {
+      state.targets.splice(idx, 1);
+      renderTargets();
+      syncToCloud();
+    };
+
+    // GLOBAL BROADCAST LOGIC (MONITOR RADIO)
+    document.getElementById("startBroadcastBtn").onclick = () => {
+      const url = document.getElementById("broadcastUrl").value.trim();
+      const vid = extractYouTubeId(url);
+      if (!vid) return toast("Invalid YouTube URL");
+
+      state.broadcast = {
+        vid: vid,
+        startedBy: state.currentUser.name,
+        at: Date.now()
+      };
+      syncToCloud();
+      toast("Broadcasting track globally to all students!");
+    };
+
+    document.getElementById("stopBroadcastBtn").onclick = () => {
+      state.broadcast = null;
+      syncToCloud();
+      toast("Broadcast stopped.");
+    };
+
+    function handleBroadcastSync() {
+      const banner = document.getElementById("globalRadioBanner");
+      const player = document.getElementById("globalYtPlayer");
+      if (state.broadcast && state.broadcast.vid) {
+        banner.style.display = "block";
+        document.getElementById("globalRadioTitle").textContent = `${state.broadcast.startedBy} is broadcasting a study track`;
+        if (!isGlobalMuted) {
+          player.src = `https://www.youtube-nocookie.com/embed/${state.broadcast.vid}?autoplay=1`;
+        }
+      } else {
+        banner.style.display = "none";
+        player.src = "";
+      }
+    }
+
+    document.getElementById("toggleGlobalAudioBtn").onclick = () => {
+      isGlobalMuted = !isGlobalMuted;
+      const player = document.getElementById("globalYtPlayer");
+      const btn = document.getElementById("toggleGlobalAudioBtn");
+      if (isGlobalMuted) {
+        player.src = "";
+        btn.textContent = "🔈 Unmute";
+      } else {
+        if (state.broadcast && state.broadcast.vid) {
+          player.src = `https://www.youtube-nocookie.com/embed/${state.broadcast.vid}?autoplay=1`;
+        }
+        btn.textContent = "🔊 Mute";
+      }
+    };
+
+    // STUDENT SUGGESTION / SONG REQUEST BOX
+    document.getElementById("submitSuggestBtn").onclick = () => {
+      const type = document.getElementById("suggestType").value;
+      const msg = document.getElementById("suggestMessage").value.trim();
+      if (!msg) return toast("Please enter a suggestion message or URL");
+
+      state.suggestions = state.suggestions || [];
+      state.suggestions.push({
+        id: Date.now(),
+        from: state.currentUser.name,
+        email: state.currentUser.email,
+        type: type,
+        message: msg,
+        date: new Date().toLocaleDateString()
+      });
+      syncToCloud();
+      document.getElementById("suggestMessage").value = "";
+      toast("Suggestion delivered to Monitor!");
+    };
+
+    // MULTIPLAYER BREAK GAME: TIC-TAC-TOE
+    function renderTttBoard() {
+      const boardEl = document.getElementById("tttBoard");
+      boardEl.innerHTML = "";
+      const t = state.ttt;
+
+      let statusMsg = `Player X: ${t.pX || 'Empty'} | Player O: ${t.pO || 'Empty'}`;
+      if (t.winner) statusMsg = `🏆 Winner: Player ${t.winner}!`;
+      else if (t.pX && t.pO) statusMsg = `Current Turn: Player ${t.turn}`;
+      document.getElementById("tttStatus").textContent = statusMsg;
+
+      t.board.forEach((val, i) => {
+        const cell = document.createElement("div");
+        cell.className = "ttt-cell";
+        cell.textContent = val;
+        cell.onclick = () => handleTttClick(i);
+        boardEl.appendChild(cell);
+      });
+    }
+
+    document.getElementById("joinXBtn").onclick = () => {
+      if (!state.ttt.pX) {
+        state.ttt.pX = state.currentUser.name;
+        syncToCloud();
+        toast("Joined as Player X");
+      }
+    };
+    document.getElementById("joinOBtn").onclick = () => {
+      if (!state.ttt.pO) {
+        state.ttt.pO = state.currentUser.name;
+        syncToCloud();
+        toast("Joined as Player O");
+      }
+    };
+    document.getElementById("resetTttBtn").onclick = () => {
+      state.ttt = { board: Array(9).fill(""), turn: "X", pX: "", pO: "" };
+      syncToCloud();
+      toast("Tic-Tac-Toe reset");
+    };
+
+    function handleTttClick(idx) {
+      const t = state.ttt;
+      if (t.board[idx] || t.winner) return;
+      if ((t.turn === "X" && t.pX === state.currentUser.name) || (t.turn === "O" && t.pO === state.currentUser.name)) {
+        t.board[idx] = t.turn;
+        t.turn = t.turn === "X" ? "O" : "X";
+        checkTttWinner();
+        syncToCloud();
+      } else {
+        toast("Not your turn or you haven't joined!");
+      }
+    }
+
+    function checkTttWinner() {
+      const b = state.ttt.board;
+      const wins = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      for (let w of wins) {
+        if (b[w[0]] && b[w[0]] === b[w[1]] && b[w[0]] === b[w[2]]) {
+          state.ttt.winner = b[w[0]];
+          return;
+        }
+      }
+    }
+
+    // MULTI-DEVICE NAME & PROFILE SYNCHRONIZATION
+    document.getElementById("saveProfileBtn").onclick = () => {
+      const newName = document.getElementById("profName").value.trim();
+      const newPass = document.getElementById("profPass").value;
+      const newGoal = document.getElementById("profGoal").value.trim();
+      if (!newName || !newPass) return toast("Name and password required.");
+
+      state.currentUser.name = newName;
+      state.currentUser.pass = newPass;
+      state.currentUser.goal = newGoal;
+
+      // Update in cloud user directory
+      if (!state.isOwner) {
+        const idx = state.users.findIndex(u => u.email === state.currentUser.email);
+        if (idx !== -1) {
+          state.users[idx].name = newName;
+          state.users[idx].pass = newPass;
+          state.users[idx].goal = newGoal;
+        }
+      }
+
+      // Update occupied desk instantly
+      if (state.mySeat && state.roomOccupants[state.mySeat]) {
+        state.roomOccupants[state.mySeat].name = newName;
+      }
+
+      syncToCloud();
+      document.getElementById("roleBadge").textContent = state.isOwner ? "👑 Monitor" : newName;
+      document.getElementById("userCamBadge").textContent = newName + " (You)";
+      renderSeats();
+      renderMeetingGrid();
+      toast("Profile updated across all devices!");
+    };
+
+    // MONITOR PANEL: REQUESTS, SUGGESTIONS & MEMBERS
+    function renderMonitorPanel() {
+      const pendingBox = document.getElementById("pendingList");
+      const acceptedBox = document.getElementById("acceptedMembersList");
+      const suggestBox = document.getElementById("receivedSuggestionsList");
+
+      document.getElementById("pendingCount").textContent = state.pendingUsers.length;
+      document.getElementById("suggestionCount").textContent = (state.suggestions || []).length;
+
+      pendingBox.innerHTML = !state.pendingUsers.length ? `<div style="font-size:12px; color:var(--text-mute);">No pending access requests.</div>` : "";
+      state.pendingUsers.forEach((u, idx) => {
+        const d = document.createElement("div");
+        d.style = "display:flex; justify-content:space-between; align-items:center; background:var(--surface); padding:8px 12px; border-radius:8px;";
+        d.innerHTML = `
+          <div><b>${u.name}</b><br><small style="color:var(--text-mute)">${u.email}</small></div>
+          <div class="row">
+            <button class="btn btn-success btn-sm" onclick="approveUser(${idx})">Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectUser(${idx})">Reject</button>
+          </div>
+        `;
+        pendingBox.appendChild(d);
+      });
+
+      suggestBox.innerHTML = !(state.suggestions && state.suggestions.length) ? `<div style="font-size:12px; color:var(--text-mute);">No suggestions received yet.</div>` : "";
+      (state.suggestions || []).forEach((s, idx) => {
+        const d = document.createElement("div");
+        d.style = "background:var(--surface); padding:8px 12px; border-radius:8px; font-size:12px;";
+        d.innerHTML = `
+          <div style="display:flex; justify-content:space-between;">
+            <b>${s.from} (${s.type})</b>
+            <button class="btn btn-danger btn-sm" style="padding:2px 6px;" onclick="deleteSuggestion(${idx})">✕</button>
+          </div>
+          <div style="margin-top:4px; color:var(--text); word-break:break-all;">${s.message}</div>
+        `;
+        suggestBox.appendChild(d);
+      });
+
+      acceptedBox.innerHTML = !state.users.length ? `<div style="font-size:12px; color:var(--text-mute);">No registered students yet.</div>` : "";
+      state.users.forEach((u, idx) => {
+        const d = document.createElement("div");
+        d.style = "display:flex; justify-content:space-between; align-items:center; background:var(--surface); padding:8px 12px; border-radius:8px;";
+        d.innerHTML = `
+          <div><b>${u.name}</b> <span class="badge custom-tag">${u.tag || 'Student'}</span><br><small style="color:var(--text-mute)">${u.email}</small></div>
+          <button class="btn btn-danger btn-sm" onclick="removeMember(${idx})">Revoke</button>
+        `;
+        acceptedBox.appendChild(d);
+      });
+    }
+
+    window.approveUser = (idx) => {
+      const user = state.pendingUsers.splice(idx, 1)[0];
+      state.users.push(user);
+      syncToCloud();
+      renderMonitorPanel();
+      toast("Access approved for " + user.name);
+    };
+
+    window.rejectUser = (idx) => {
+      state.pendingUsers.splice(idx, 1);
+      syncToCloud();
+      renderMonitorPanel();
+      toast("Request rejected");
+    };
+
+    window.removeMember = (idx) => {
+      if (confirm("Revoke access for this user?")) {
+        state.users.splice(idx, 1);
+        syncToCloud();
+        renderMonitorPanel();
+      }
+    };
+
+    window.deleteSuggestion = (idx) => {
+      state.suggestions.splice(idx, 1);
+      syncToCloud();
+      renderMonitorPanel();
+    };
+
+    // YouTube Helper
+    document.getElementById("playCustomYtBtn").onclick = () => {
+      const rawUrl = document.getElementById("customYtUrl").value.trim();
+      const vid = extractYouTubeId(rawUrl);
+      if (vid) {
+        document.getElementById("ytPlayerFrame").src = `https://www.youtube-nocookie.com/embed/${vid}?autoplay=1`;
+        toast("Playing song!");
+      } else {
+        toast("Invalid YouTube URL");
+      }
+    };
+
+    function extractYouTubeId(url) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    // Picture-in-Picture Mini View
+    const pipBtn = document.getElementById("pipBtn");
+    const pipCanvas = document.getElementById("pipCanvas");
+    const pipCtx = pipCanvas.getContext("2d");
+    const pipVideo = document.getElementById("pipVideo");
+
+    function renderPipCanvas() {
+      pipCtx.fillStyle = "#090d16";
+      pipCtx.fillRect(0, 0, 400, 240);
+
+      pipCtx.fillStyle = "#3b82f6";
+      pipCtx.font = "bold 22px sans-serif";
+      pipCtx.fillText("Study Hub By Gourav", 20, 45);
+
+      pipCtx.fillStyle = "#8e9db7";
+      pipCtx.font = "16px monospace";
+      pipCtx.fillText("Desk: " + (state.mySeat || "Unassigned"), 20, 85);
+
+      const elapsed = (state.mySeat && !state.isPaused && state.studySince)
+        ? Math.floor((Date.now() - state.studySince) / 1000)
+        : 0;
+
+      pipCtx.fillStyle = "#10b981";
+      pipCtx.font = "bold 44px monospace";
+      pipCtx.fillText(fmtTime(elapsed), 20, 150);
+
+      pipCtx.fillStyle = state.isPaused ? "#f59e0b" : "#10b981";
+      pipCtx.font = "16px sans-serif";
+      pipCtx.fillText("Status: " + (state.isPaused ? "Paused" : (state.mySeat ? "Active Focus" : "Idle")), 20, 205);
+    }
+    setInterval(renderPipCanvas, 500);
+
+    pipBtn.onclick = async () => {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          pipVideo.srcObject = pipCanvas.captureStream(10);
+          await pipVideo.play();
+          await pipVideo.requestPictureInPicture();
+        }
+      } catch(err) {
+        toast("Picture-in-Picture not supported on this browser.");
+      }
+    };
+
+    function renderHistory() {
+      const container = document.getElementById("historyLogContainer");
+      container.innerHTML = "";
+      const dates = Object.keys(state.dailyLogs).sort().reverse();
+      let lifetime = 0;
+      if (!dates.length) container.innerHTML = `<p style="font-size:12px; color:var(--text-mute); text-align:center;">No study logs recorded yet.</p>`;
+      dates.forEach(d => {
+        const sec = state.dailyLogs[d];
+        lifetime += sec;
+        const row = document.createElement("div");
+        row.className = "history-row";
+        row.innerHTML = `<span>📅 ${d}</span><b>${fmtHours(sec)}</b>`;
+        container.appendChild(row);
+      });
+      document.getElementById("totalLogStat").textContent = fmtHours(lifetime);
+    }
+
+    // Navigation Switcher
+    function switchTab(targetId) {
+      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".drawer-nav-item").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll("nav.bottom-nav button").forEach(b => b.classList.remove("active"));
+
+      const targetTab = document.getElementById(targetId);
+      if (targetTab) targetTab.classList.add("active");
+      const navBtn = document.querySelector(`nav.bottom-nav button[data-tab="${targetId}"]`);
+      if (navBtn) navBtn.classList.add("active");
+      const drawerBtn = document.querySelector(`.drawer-nav-item[data-tab="${targetId}"]`);
+      if (drawerBtn) drawerBtn.classList.add("active");
+      closeDrawer();
+    }
+
+    document.querySelectorAll("nav.bottom-nav button, .drawer-nav-item").forEach(btn => {
+      btn.onclick = () => {
+        const target = btn.getAttribute("data-tab");
+        if (target) switchTab(target);
+      };
+    });
+
+    document.getElementById("themeToggleBtn").onclick = () => {
+      const isDark = document.body.getAttribute("data-theme") !== "light";
+      document.body.setAttribute("data-theme", isDark ? "light" : "dark");
+    };
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    }
+  </script>
+</body>
+</html>
