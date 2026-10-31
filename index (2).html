@@ -1,0 +1,2287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Study Hub By Gourav | Virtual Coworking Ecosystem</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Firebase Realtime Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #090d16;
+      --surface: #111726;
+      --card: #172033;
+      --card-border: #222f49;
+      --text: #f1f5f9;
+      --text-mute: #8e9db7;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+
+      /* Seat Colors */
+      --seat-free-bg: rgba(16, 185, 129, 0.12);
+      --seat-free-border: #10b981;
+      --seat-free-text: #34d399;
+
+      --seat-mine-bg: #2563eb;
+      --seat-mine-border: #60a5fa;
+      --seat-mine-text: #ffffff;
+
+      --seat-occ-bg: rgba(239, 68, 68, 0.18);
+      --seat-occ-border: #ef4444;
+      --seat-occ-text: #fca5a5;
+
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius: 12px;
+      --btn-radius: 8px;
+    }
+
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --card-border: #e2e8f0;
+      --text: #0f172a;
+      --text-mute: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #059669;
+      --seat-free-bg: #ecfdf5;
+      --seat-free-border: #059669;
+      --seat-free-text: #065f46;
+      --seat-occ-bg: #fef2f2;
+      --seat-occ-border: #dc2626;
+      --seat-occ-text: #991b1b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-main); }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 95px;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Ambient Animated Wave Bottom Line */
+    body::after {
+      content: "";
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 200%;
+      height: 3px;
+      background: linear-gradient(90deg, #3b82f6, #10b981, #ec4899, #3b82f6);
+      animation: bottomWave 6s linear infinite;
+      z-index: 60;
+    }
+    @keyframes bottomWave { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--surface); border-bottom: 1px solid var(--card-border);
+      padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .header-left { display: flex; align-items: center; gap: 12px; }
+    .menu-trigger { font-size: 20px; background: none; border: 0; color: var(--text); cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+    .brand { font-weight: 800; font-size: 16px; }
+    .brand span { color: var(--primary); }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .side-drawer {
+      position: fixed; top: 0; left: -320px; width: 300px; height: 100vh;
+      background: var(--surface); border-right: 1px solid var(--card-border);
+      z-index: 150; padding: 20px; transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column; gap: 10px; overflow-y: auto;
+    }
+    .side-drawer.open { left: 0; }
+    .drawer-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      z-index: 140; display: none;
+    }
+    .drawer-overlay.active { display: block; }
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; border-bottom: 1px solid var(--card-border); }
+    .drawer-nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px;
+      color: var(--text); cursor: pointer; font-size: 13px; font-weight: 600; border: 0;
+      background: none; width: 100%; text-align: left; transition: 0.2s; position: relative;
+    }
+    .drawer-nav-item:hover, .drawer-nav-item.active { background: var(--primary); color: #fff; }
+
+    main { max-width: 1020px; margin: auto; padding: 16px; }
+
+    .card {
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: 16px; margin-bottom: 16px;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .card:hover { border-color: rgba(59, 130, 246, 0.4); }
+
+    .card-title {
+      font-size: 14px; font-weight: 700; display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 12px;
+    }
+
+    .badge {
+      font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700;
+      background: var(--primary); color: #fff; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .badge.admin { background: var(--warning); color: #000; }
+    .badge.custom-tag { background: #6366f1; }
+
+    .btn {
+      background: var(--primary); color: #fff; border: 0; padding: 8px 14px;
+      border-radius: var(--btn-radius); font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; transition: 0.2s;
+    }
+    .btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+    .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text); }
+    .btn-outline:hover { background: var(--card-border); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-success { background: var(--accent); }
+    .btn-warning { background: var(--warning); color: #000; }
+
+    input, select, textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--card-border);
+      color: var(--text); padding: 10px 12px; border-radius: 8px; font-size: 13px;
+      outline: none; margin-bottom: 10px;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+
+    /* Special Head Monitor Command Desk */
+    .monitor-station-box {
+      background: rgba(245, 158, 11, 0.08);
+      border: 2px dashed var(--warning);
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.3s ease;
+    }
+    .monitor-station-box.live {
+      border: 2px solid var(--accent);
+      background: rgba(16, 185, 129, 0.12);
+      box-shadow: 0 0 18px rgba(16, 185, 129, 0.4);
+    }
+    .monitor-status-pill {
+      font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+
+    /* Seating Matrix */
+    .seat-legend {
+      display: flex; gap: 14px; margin-bottom: 12px; font-size: 11px; font-weight: 600;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    .seat-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+      gap: 10px; margin-top: 10px;
+    }
+    .seat {
+      aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; font-size: 11px; cursor: pointer;
+      font-weight: 700; transition: 0.25s cubic-bezier(0.2, 0.8, 0.2, 1); position: relative;
+      border: 1.5px solid var(--seat-free-border);
+      background: var(--seat-free-bg); color: var(--seat-free-text);
+    }
+    .seat:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 4px 14px rgba(0,0,0,0.4); }
+    .seat.mine {
+      background: var(--seat-mine-bg) !important; border: 2px solid var(--seat-mine-border) !important;
+      color: var(--seat-mine-text) !important; box-shadow: 0 0 15px rgba(37, 99, 235, 0.6);
+    }
+    .seat.occupied {
+      background: var(--seat-occ-bg) !important; border: 1.5px solid var(--seat-occ-border) !important;
+      color: var(--seat-occ-text) !important; cursor: not-allowed;
+    }
+    .seat .u-name { font-size: 9px; max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; font-weight: 500; }
+
+    /* Video Meeting Grid */
+    .video-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px; margin-top: 10px;
+    }
+    .video-tile {
+      background: #000; border-radius: 10px; aspect-ratio: 16/10; position: relative;
+      overflow: hidden; border: 1px solid var(--card-border); display: flex;
+      align-items: center; justify-content: center;
+    }
+    .video-tile video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+    .video-avatar {
+      width: 50px; height: 50px; border-radius: 50%; background: var(--card-border);
+      display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700;
+    }
+    .video-badge {
+      position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.7);
+      font-size: 11px; padding: 3px 8px; border-radius: 4px; backdrop-filter: blur(4px);
+      display: flex; align-items: center; gap: 5px;
+    }
+    .video-controls-overlay {
+      position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 5;
+    }
+    .btn-icon {
+      background: rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.2);
+      color: #fff; width: 28px; height: 28px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 12px; cursor: pointer;
+    }
+    .btn-icon.off { background: var(--danger); }
+    .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+    .clock-display {
+      font-family: var(--font-mono); font-size: 34px; font-weight: 700;
+      text-align: center; margin: 8px 0; color: var(--accent);
+    }
+    .history-row {
+      display: flex; justify-content: space-between; padding: 10px 0;
+      border-bottom: 1px solid var(--card-border); font-size: 13px;
+    }
+
+    /* Target Items */
+    .target-item {
+      background: var(--surface); border: 1px solid var(--card-border);
+      border-radius: 8px; padding: 10px 12px; display: flex;
+      justify-content: space-between; align-items: center; margin-bottom: 8px;
+    }
+    .target-item.completed { opacity: 0.6; text-decoration: line-through; }
+
+    /* Chat Styling */
+    .chat-box {
+      height: 380px; overflow-y: auto; background: var(--surface);
+      border: 1px solid var(--card-border); border-radius: 10px;
+      padding: 12px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .chat-msg {
+      max-width: 82%; padding: 8px 12px; border-radius: 10px; font-size: 13px; line-height: 1.4;
+    }
+    .chat-msg.mine { align-self: flex-end; background: var(--primary); color: #fff; }
+    .chat-msg.others { align-self: flex-start; background: var(--card); border: 1px solid var(--card-border); }
+    .chat-meta { font-size: 10px; opacity: 0.75; margin-bottom: 2px; }
+
+    /* Notification Dot */
+    .unread-dot {
+      width: 8px; height: 8px; background: var(--danger); border-radius: 50%;
+      display: inline-block; margin-left: 4px;
+    }
+
+    /* Multiplayer Tic-Tac-Toe */
+    .ttt-board {
+      display: grid; grid-template-columns: repeat(3, 80px); gap: 6px;
+      justify-content: center; margin: 12px auto;
+    }
+    .ttt-cell {
+      width: 80px; height: 80px; background: var(--surface);
+      border: 2px solid var(--card-border); border-radius: 8px;
+      font-size: 28px; font-weight: 800; display: flex;
+      align-items: center; justify-content: center; cursor: pointer;
+    }
+    .ttt-cell:hover { border-color: var(--primary); }
+
+    /* Bottom Navigation Bar (5 Primary Tabs) */
+    nav.bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface);
+      border-top: 1px solid var(--card-border); display: flex; z-index: 40;
+    }
+    nav.bottom-nav button {
+      flex: 1; padding: 12px 4px; background: none; border: 0; color: var(--text-mute);
+      font-size: 11px; font-weight: 600; cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; gap: 4px; transition: color 0.2s; position: relative;
+    }
+    nav.bottom-nav button.active { color: var(--primary); border-top: 2px solid var(--primary); }
+
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px;
+    }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--card-border);
+      border-radius: 14px; padding: 22px; width: 100%; max-width: 440px; text-align: left;
+      max-height: 90vh; overflow-y: auto;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .row { display: flex; gap: 8px; align-items: center; }
+    .toast {
+      position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%);
+      background: #111827; color: #fff; padding: 8px 16px; border-radius: 30px;
+      font-size: 12px; border: 1px solid #374151; z-index: 200; pointer-events: none;
+      opacity: 0; transition: 0.3s;
+    }
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+
+  <!-- Side Drawer (Hamburger Menu - Extra Modules) -->
+  <div class="side-drawer" id="sideDrawer">
+    <div class="drawer-header">
+      <div style="font-weight: 800;">Ecosystem Menu</div>
+      <button class="btn btn-outline btn-sm" id="closeDrawerBtn">✕</button>
+    </div>
+
+    <div style="font-size: 11px; text-transform: uppercase; color: var(--text-mute); font-weight: 700;">Essential Navigation</div>
+    <button class="drawer-nav-item active" data-tab="tab-library">🏛️ Study Hall & Video</button>
+    <button class="drawer-nav-item" data-tab="tab-targets">🎯 Daily Targets & Timers</button>
+    <button class="drawer-nav-item" data-tab="tab-chat">💬 Community Chat <span id="drawerChatDot" class="unread-dot" style="display:none;"></span></button>
+    <button class="drawer-nav-item" data-tab="tab-music">🎵 Custom & Global Radio</button>
+    <button class="drawer-nav-item" data-tab="tab-members">👥 Members Directory</button>
+
+    <div style="font-size: 11px; text-transform: uppercase; color: var(--text-mute); font-weight: 700; margin-top: 10px;">Extra Tools & Breaks</div>
+    <button class="drawer-nav-item" data-tab="tab-game">🎮 Live Multiplayer Break Game</button>
+    <button class="drawer-nav-item" data-tab="tab-feedback">💡 Student Suggestion & Songs</button>
+    <button class="drawer-nav-item" data-tab="tab-history">📊 Analytics & Lifetime Logs</button>
+    <button class="drawer-nav-item" data-tab="tab-pdfs">📑 Vault PDF Documents</button>
+    <button class="drawer-nav-item" data-tab="tab-profile">👤 Profile & Credentials</button>
+    <button class="drawer-nav-item" id="drawerLiveBtn" data-tab="tab-live" style="display:none; color: var(--accent);">🟢 Live Members Control</button>
+    <button class="drawer-nav-item" id="drawerMonitorBtn" data-tab="tab-monitor" style="display:none; color: var(--warning);">🛡️ Monitor Command Center</button>
+
+    <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid var(--card-border);">
+      <button class="btn btn-danger" style="width:100%; justify-content:center;" id="drawerLogoutBtn">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <button class="menu-trigger" id="openDrawerBtn">☰</button>
+      <div class="brand">📚 Study Hub <span>By Gourav</span></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" id="pipBtn" title="Picture-in-Picture Mini View">📌 Mini</button>
+      <span id="roleBadge" class="badge">Student</span>
+      <button class="btn btn-outline btn-sm" id="themeToggleBtn">🌓</button>
+      <button class="btn btn-danger btn-sm" id="quickLogoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <!-- Login Modal (Credentials Box Removed for Clean Security) -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <h2 style="font-size: 18px; margin-bottom: 4px;">Study Hub Login</h2>
+      <p style="color: var(--text-mute); font-size: 12px; margin-bottom: 16px;">Sign in to enter the virtual study rooms</p>
+
+      <div id="authAlert" style="display:none; color: var(--danger); font-size: 12px; margin-bottom: 10px;"></div>
+
+      <input type="text" id="authEmail" placeholder="Username / Email">
+      <input type="password" id="authPass" placeholder="Password">
+      <input type="text" id="authName" placeholder="Full Name" style="display:none;">
+
+      <button class="btn" style="width:100%; justify-content:center;" id="loginActionBtn">Sign In</button>
+
+      <div style="margin-top: 14px; font-size: 12px; text-align: center;">
+        <span id="authToggleText">Don't have an account?</span>
+        <a href="#" id="authToggleLink" style="color:var(--primary); font-weight:600;">Request Access</a>
+      </div>
+    </div>
+  </div>
+
+  <main>
+    <!-- GLOBAL BROADCAST BAR -->
+    <div class="card" id="globalRadioBanner" style="border-left: 4px solid var(--accent); display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span class="badge" style="background:var(--accent);">📻 Monitor Radio Live</span>
+          <span style="font-size:12px; margin-left:8px;" id="globalRadioTitle">Gourav is broadcasting study music</span>
+        </div>
+        <button class="btn btn-sm btn-outline" id="toggleGlobalAudioBtn">🔊 Mute</button>
+      </div>
+      <iframe id="globalYtPlayer" width="1" height="1" style="display:none;" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+    </div>
+
+    <!-- ACTIVE TASK ON HOME PAGE BANNER -->
+    <div class="card" id="homeActiveTaskBanner" style="border-left: 4px solid var(--primary); display:none; background: rgba(59, 130, 246, 0.1);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span class="badge" style="background:var(--primary);">🎯 Active Target</span>
+          <b style="font-size:13px; margin-left:6px;" id="homeActiveTaskName">Subject</b>
+          <span style="font-family:var(--font-mono); font-size:14px; margin-left:8px; color:var(--accent);" id="homeActiveTaskTimer">00:00</span>
+        </div>
+        <div class="row">
+          <button class="btn btn-sm btn-outline" id="homePauseTaskBtn">Pause</button>
+          <button class="btn btn-sm btn-success" id="homeDoneTaskBtn">✓ Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: LIBRARY & VIDEO ROOM -->
+    <section id="tab-library" class="tab-content active">
+      <div class="card">
+        <div class="card-title">
+          <span>Current Desk: <b id="currentDeskLabel" style="color: var(--primary);">Unassigned</b></span>
+          <span id="liveStatusTag" class="badge" style="background:#4b5563;">Idle</span>
+        </div>
+        <div class="clock-display" id="sessionTimer">00:00:00</div>
+        <div class="row" style="justify-content: center;">
+          <button class="btn btn-outline" id="pauseStudyBtn">Pause</button>
+          <button class="btn btn-danger" id="leaveDeskBtn">Leave Desk</button>
+        </div>
+      </div>
+
+      <!-- Live Video Meeting Grid with Audio/Video Controls -->
+      <div class="card">
+        <div class="card-title">
+          <span>Live Study Room (All Students Video Grid)</span>
+          <div class="row">
+            <button class="btn btn-outline btn-sm" id="toggleCamBtn">📹 Camera</button>
+            <button class="btn btn-outline btn-sm" id="toggleMicBtn">🎤 Mic</button>
+          </div>
+        </div>
+
+        <div class="video-grid" id="videoGrid">
+          <!-- User Tile -->
+          <div class="video-tile" id="userVideoTile">
+            <div class="video-controls-overlay">
+              <button class="btn-icon off" id="tileMicBtn" title="Toggle Mic">🔇</button>
+              <button class="btn-icon off" id="tileCamBtn" title="Toggle Camera">📹</button>
+            </div>
+            <video id="userCam" autoplay playsinline muted style="display:none;"></video>
+            <div class="video-avatar" id="userCamPlaceholder">👤</div>
+            <div class="video-badge"><span class="live-dot"></span><span id="userCamBadge">You</span></div>
+          </div>
+          <!-- Other Students Tiles -->
+          <div id="cohortVideoTiles" style="display:contents;"></div>
+        </div>
+      </div>
+
+      <!-- Reading Hall Desks -->
+      <div class="card">
+        <div class="card-title">
+          <span>Reading Hall Desks Matrix</span>
+          <span style="font-size: 11px; color: var(--text-mute);">Tap green desk to sit</span>
+        </div>
+
+        <!-- SPECIAL VIP MONITOR STATION (SABSE AAGE) -->
+        <div class="monitor-station-box" id="monitorStationBox">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="font-size:32px;">👑</div>
+            <div>
+              <div style="font-weight:800; font-size:14px; color:var(--warning);">Head Monitor Command Desk (Gourav)</div>
+              <div style="font-size:11px; color:var(--text-mute);">Reserved exclusively for ecosystem administrator</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div id="monitorDeskStatusPill" class="monitor-status-pill" style="background:#374151; color:#9ca3af;">
+              ⚪ Monitor Offline
+            </div>
+            <button class="btn btn-warning btn-sm" id="claimMonitorDeskBtn">Sit as Monitor</button>
+          </div>
+        </div>
+
+        <div class="seat-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div> Free (Khali)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--primary);"></div> Your Seat (Aapki)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--danger);"></div> Occupied (Full)</div>
+        </div>
+
+        <div class="seat-grid" id="seatMatrix"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: TODAY TARGETS & SUBJECT TIMERS -->
+    <section id="tab-targets" class="tab-content">
+      <div class="card">
+        <div class="card-title">🎯 Today's Study Targets & Subject Timers</div>
+        <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 12px;">Add what you plan to study today and set a countdown timer. Starting a timer displays it on the Home Hall.</p>
+
+        <div class="row" style="margin-bottom: 10px;">
+          <input type="text" id="targetSubject" placeholder="Subject / Chapter Name (e.g. Modern History)" style="margin-bottom:0;">
+          <input type="number" id="targetDuration" placeholder="Mins (Optional)" style="width:130px; margin-bottom:0;">
+          <button class="btn btn-success" id="addTargetBtn">+ Add</button>
+        </div>
+
+        <div id="targetListContainer" style="margin-top: 14px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: MEMBERS COMMUNITY CHAT -->
+    <section id="tab-chat" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>💬 Members Study Chat Box</span>
+          <span style="font-size: 11px; color: var(--text-mute);">Real-time discussions & doubts</span>
+        </div>
+
+        <div class="chat-box" id="chatContainer"></div>
+
+        <div class="row" style="margin-top: 12px;">
+          <input type="text" id="chatInput" placeholder="Type a message to all members..." style="margin-bottom:0;">
+          <button class="btn btn-primary" id="sendChatBtn">Send</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: YOUTUBE MUSIC & BROADCAST -->
+    <section id="tab-music" class="tab-content">
+      <div class="card">
+        <div class="card-title">Custom & Global Radio</div>
+
+        <div style="background: var(--surface); padding: 12px; border-radius: 8px; margin-bottom: 14px;">
+          <label style="font-size: 12px; font-weight: 600; display: block; margin-bottom: 6px;">Paste Your Personal Song URL:</label>
+          <div class="row">
+            <input type="text" id="customYtUrl" placeholder="https://www.youtube.com/watch?v=... or share link" style="margin-bottom:0;">
+            <button class="btn btn-success" id="playCustomYtBtn">Play</button>
+          </div>
+        </div>
+
+        <div style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: #000; margin-bottom: 12px;">
+          <iframe id="ytPlayerFrame" width="100%" height="100%" src="https://www.youtube-nocookie.com/embed/jfKfPfyJRdk" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+
+        <!-- Monitor Global Broadcast Control -->
+        <div id="monitorBroadcastSection" style="display:none; background:rgba(245, 158, 11, 0.1); border:1px solid var(--warning); padding:12px; border-radius:8px; margin-top:14px;">
+          <div style="font-size:13px; font-weight:700; color:var(--warning); margin-bottom:6px;">👑 Monitor Broadcast to All Students:</div>
+          <div class="row">
+            <input type="text" id="broadcastUrl" placeholder="YouTube URL to broadcast across all students" style="margin-bottom:0;">
+            <button class="btn btn-warning" id="startBroadcastBtn">Broadcast</button>
+            <button class="btn btn-outline btn-sm" id="stopBroadcastBtn">Stop</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: PUBLIC MEMBERS DIRECTORY -->
+    <section id="tab-members" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>👥 Study Hub Members Directory</span>
+          <span class="badge" id="onlineMemberCount">0 Online</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 12px;">All registered peers, exams targeted, and their current live focus desks.</p>
+        <div id="publicMembersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 6: MULTIPLAYER BREAK GAME -->
+    <section id="tab-game" class="tab-content">
+      <div class="card" style="text-align: center;">
+        <div class="card-title">🎮 Live Multiplayer Break Game: Tic-Tac-Toe</div>
+        <p style="font-size: 12px; color: var(--text-mute);">Play live against another online peer during study breaks.</p>
+
+        <div style="margin: 10px 0; font-size: 13px;">
+          Status: <b id="tttStatus" style="color:var(--primary);">Waiting for players</b>
+        </div>
+
+        <div class="row" style="justify-content: center; margin-bottom: 12px;">
+          <button class="btn btn-sm btn-outline" id="joinXBtn">Join as Player X</button>
+          <button class="btn btn-sm btn-outline" id="joinOBtn">Join as Player O</button>
+          <button class="btn btn-sm btn-danger" id="resetTttBtn">Reset Board</button>
+        </div>
+
+        <div class="ttt-board" id="tttBoard"></div>
+      </div>
+    </section>
+
+    <!-- TAB 7: STUDENT SUGGESTIONS -->
+    <section id="tab-feedback" class="tab-content">
+      <div class="card">
+        <div class="card-title">💡 Student Suggestion & Song Request Box</div>
+        <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 12px;">Have an idea or want a specific study track broadcasted? Submit it directly to Gourav.</p>
+
+        <label style="font-size: 12px; font-weight: 600;">Type of Suggestion:</label>
+        <select id="suggestType">
+          <option value="Feature / Improvement">Feature / App Improvement</option>
+          <option value="Study Track Request">Study Track / Song Request</option>
+          <option value="General Feedback">General Feedback</option>
+        </select>
+
+        <label style="font-size: 12px; font-weight: 600;">Your Message / YouTube Link:</label>
+        <textarea id="suggestMessage" rows="3" placeholder="Write your suggestion or paste study track link..."></textarea>
+
+        <button class="btn btn-primary" id="submitSuggestBtn">Submit Suggestion</button>
+      </div>
+    </section>
+
+    <!-- TAB 8: ANALYTICS & LOGS -->
+    <section id="tab-history" class="tab-content">
+      <div class="card">
+        <div class="card-title">Study History & Metrics</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 14px;">
+          <div style="background:var(--surface); padding:12px; border-radius:8px; text-align:center;">
+            <div style="font-size:11px; color:var(--text-mute);">Today's Focus</div>
+            <div style="font-size:18px; font-weight:700; color:var(--accent);" id="todayLogStat">0h 0m</div>
+          </div>
+          <div style="background:var(--surface); padding:12px; border-radius:8px; text-align:center;">
+            <div style="font-size:11px; color:var(--text-mute);">Lifetime Hours</div>
+            <div style="font-size:18px; font-weight:700; color:var(--primary);" id="totalLogStat">0h 0m</div>
+          </div>
+        </div>
+        <div class="card-title" style="font-size: 13px;">Daily Logs</div>
+        <div id="historyLogContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 9: PDF VAULT -->
+    <section id="tab-pdfs" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>Persistent Study Documents</span>
+          <button class="btn btn-sm" id="uploadPdfTrigger">+ Upload PDF</button>
+        </div>
+        <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none;">
+        <div id="pdfShelfContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 10: PROFILE -->
+    <section id="tab-profile" class="tab-content">
+      <div class="card">
+        <div class="card-title">Profile & Security Settings</div>
+        <label style="font-size: 12px; font-weight: 600;">Display Name:</label>
+        <input type="text" id="profName">
+        <label style="font-size: 12px; font-weight: 600;">Registered Email (Read-only):</label>
+        <input type="text" id="profEmail" readonly style="opacity: 0.7;">
+        <label style="font-size: 12px; font-weight: 600;">Change Password:</label>
+        <input type="password" id="profPass">
+        <label style="font-size: 12px; font-weight: 600;">Target Goal / Exam:</label>
+        <input type="text" id="profGoal" placeholder="e.g. UPSC / BPSC / Software Developer">
+        <button class="btn btn-primary" id="saveProfileBtn">Save Profile Changes</button>
+      </div>
+    </section>
+
+    <!-- TAB 11: MONITOR COMMAND CENTER -->
+    <section id="tab-live" class="tab-content">
+      <div class="card" style="border-left: 4px solid var(--accent);">
+        <div class="card-title">
+          <span>🟢 Live Members Control</span>
+          <span class="badge" id="liveCountBadge" style="background:var(--accent);">0 Live</span>
+        </div>
+        <p style="font-size:11px; color:var(--text-mute); margin-bottom:10px;">Jo bhi abhi seat par baitha hai, uska message / mic / camera / seat control yahan se.</p>
+        <div class="row" style="flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn btn-outline btn-sm" id="liveMsgAllBtn">📢 Sabko message</button>
+          <button class="btn btn-outline btn-sm" id="liveMicAllBtn">🔇 Sabka mic band</button>
+          <button class="btn btn-outline btn-sm" id="liveCamAllBtn">🚫 Sabka camera band</button>
+        </div>
+        <div id="liveMembersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <section id="tab-monitor" class="tab-content">
+      <div class="card" style="border-left: 4px solid var(--warning);">
+        <div class="card-title">
+          <span>🛡️ Monitor Command Center (Gourav)</span>
+          <span class="badge admin">Super-Admin</span>
+        </div>
+
+        <h4 style="font-size: 13px; margin: 10px 0 8px;">Pending Join Requests (<span id="pendingCount">0</span>)</h4>
+        <div id="pendingList" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+        <h4 style="font-size: 13px; margin: 16px 0 8px;">Received Student Suggestions (<span id="suggestionCount">0</span>)</h4>
+        <div id="receivedSuggestionsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+        <h4 style="font-size: 13px; margin: 16px 0 8px;">Manage Approved Members & Permissions</h4>
+        <div id="acceptedMembersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- 5-Module Primary Bottom Bar -->
+  <nav class="bottom-nav">
+    <button class="active" data-tab="tab-library">🏛️<span>Library</span></button>
+    <button data-tab="tab-targets">🎯<span>Targets</span></button>
+    <button data-tab="tab-chat" id="bottomChatBtn">
+      💬<span>Chat</span>
+      <span id="bottomChatDot" class="unread-dot" style="display:none; position:absolute; top:8px; right:20%;"></span>
+    </button>
+    <button data-tab="tab-music">🎵<span>Radio</span></button>
+    <button data-tab="tab-members" id="bottomMemberBtn">👥<span>Members</span></button>
+    <button id="quickLiveBtn" data-tab="tab-live" style="display:none;">🟢<span>Live</span></button>
+    <button id="quickMonitorBtn" data-tab="tab-monitor" style="display:none;">🛡️<span>Monitor</span></button>
+  </nav>
+
+  <div id="toast" class="toast">Notice</div>
+
+  <!-- Picture-in-Picture Mini View -->
+  <canvas id="pipCanvas" width="400" height="240" style="display:none;"></canvas>
+  <video id="pipVideo" autoplay playsinline muted style="position:fixed; bottom:0; left:0; width:2px; height:2px; opacity:0; pointer-events:none;"></video>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCUTzeUlLBomaqcM-VtkdjeRsqma7sDpVk",
+      authDomain: "study-hub-1fae3.firebaseapp.com",
+      databaseURL: "https://study-hub-1fae3-default-rtdb.firebaseio.com",
+      projectId: "study-hub-1fae3",
+      storageBucket: "study-hub-1fae3.firebasestorage.app",
+      messagingSenderId: "804818789246",
+      appId: "1:804818789246:web:17495ac85aa93965e6492f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const rtdb = firebase.database();
+
+    // UPDATED MONITOR CREDENTIALS
+    const OWNER_EMAIL = "admin";
+    const OWNER_PASS = "admin@";
+    const TOTAL_DESKS = 24;
+
+    let state = {
+      currentUser: null,
+      isOwner: false,
+      mySeat: null,
+      studySince: 0,
+      isPaused: false,
+      dailyLogs: {},
+      users: [],
+      pendingUsers: [],
+      roomOccupants: {},
+      suggestions: [],
+      targets: [],
+      broadcast: null,
+      ttt: { board: Array(9).fill(""), turn: "X", pX: "", pO: "" },
+      chat: [],
+      lastReadChatCount: 0,
+      kicks: {},
+      commands: {},
+      seatedAt: 0
+    };
+
+    let localMediaStream = null;
+    let isCamOn = false;
+    let isMicOn = false;
+    let isGlobalMuted = false;
+    let activeRunningTargetIdx = null;
+    let seenCmdId = 0;
+    let cloudReady = false; // Firebase se pehla data aane tak kuch bhi cloud me write nahi hoga
+
+    // Load Local Storage
+    function loadInitial() {
+      const data = localStorage.getItem("studyhub_v8_local");
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          state.dailyLogs = parsed.dailyLogs || {};
+          state.targets = (parsed.targets || []).map(t => ({ ...t, running: false }));
+          state.lastReadChatCount = parsed.lastReadChatCount || 0;
+        } catch(e){}
+      }
+
+      // Realtime Firebase Listener
+      rtdb.ref("ecosystem").on("value", snapshot => {
+        const cloudData = snapshot.val() || {};
+        cloudReady = true;
+        if (cloudData) {
+          state.users = cloudData.users || [];
+          state.pendingUsers = cloudData.pendingUsers || [];
+          state.roomOccupants = cloudData.roomOccupants || {};
+          state.suggestions = cloudData.suggestions || [];
+          state.broadcast = cloudData.broadcast || null;
+          state.ttt = cloudData.ttt || { board: Array(9).fill(""), turn: "X", pX: "", pO: "" };
+          state.ttt.board = Array.from({ length: 9 }, (_, i) => (state.ttt.board && state.ttt.board[i]) || "");
+          state.chat = cloudData.chat || [];
+          state.kicks = cloudData.kicks || {};
+          state.commands = cloudData.commands || {};
+
+          // CHECK IF USER HAS BEEN REVOKED / DELETED BY MONITOR
+          if (state.currentUser && !state.isOwner) {
+            const exists = state.users.find(u => u.email === state.currentUser.email);
+            if (!exists) {
+              alert("Your account access has been revoked by the monitor.");
+              localStorage.removeItem("studyhub_v8_local");
+              location.reload();
+              return;
+            } else {
+              // Sync name, password, goal, and study logs across multiple devices
+              state.currentUser.name = exists.name;
+              state.currentUser.pass = exists.pass;
+              state.currentUser.goal = exists.goal;
+              if (exists.logs) {
+                state.dailyLogs = exists.logs;
+              }
+              document.getElementById("roleBadge").textContent = exists.name;
+              document.getElementById("userCamBadge").textContent = exists.name + " (You)";
+            }
+          }
+
+          // Unread Chat Notification Dot
+          handleChatBadge();
+
+          renderSeats();
+          renderMonitorDesk();
+          renderMeetingGrid();
+          renderPublicMembers();
+          renderMonitorPanel();
+          handleBroadcastSync();
+          renderTttBoard();
+          renderChatMessages();
+          renderHistory();
+          handleKick();
+          handleCommand();
+          ensureSeatPresent();
+          purgeGhostSeats();
+        }
+      }, err => {
+        console.error("Firebase read failed:", err);
+        showCloudError(err);
+      });
+    }
+
+    function showCloudError(err) {
+      const msg = "Cloud connection failed (" + ((err && err.code) || "unknown") + "). Internet ya Firebase Database Rules check karein.";
+      const a = document.getElementById("authAlert");
+      if (a) { a.textContent = msg; a.style.display = "block"; }
+      toast(msg);
+    }
+
+    // ---------- Cloud helpers ----------
+    const emailKey = e => encodeURIComponent(String(e || "")).replace(/\./g, "%2E");
+    const cleanJson = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
+    const ecoRef = p => rtdb.ref("ecosystem" + (p ? "/" + p : ""));
+    function cloudUpdate(map) {
+      if (!cloudReady) return;
+      ecoRef().update(map).catch(showCloudError);
+    }
+    // Sirf wahi occupant "live" mana jayega jo approved member ya monitor ho (purane/hataye gaye ghost seats hide)
+    function isLiveOccupant(occ) {
+      if (!occ || !occ.name) return false;
+      return occ.email === OWNER_EMAIL || state.users.some(u => u.email === occ.email);
+    }
+    const liveOcc = o => (isLiveOccupant(o) ? o : null);
+    // Safe append (transaction) - kisi ka purana data overwrite nahi hota
+    function pushToList(path, item, cap, uniqueKey) {
+      if (!cloudReady) return;
+      ecoRef(path).transaction(cur => {
+        let list = Array.isArray(cur) ? cur.slice() : (cur ? Object.values(cur) : []);
+        if (uniqueKey && list.some(x => x && x[uniqueKey] === item[uniqueKey])) return list;
+        list.push(cleanJson(item));
+        if (cap) while (list.length > cap) list.shift();
+        return list;
+      }).catch(showCloudError);
+    }
+
+    function saveLocal() {
+      localStorage.setItem("studyhub_v8_local", JSON.stringify({
+        dailyLogs: state.dailyLogs,
+        targets: state.targets,
+        lastReadChatCount: state.lastReadChatCount
+      }));
+    }
+
+    // Student apna hi record update karta hai. Agar monitor ne hata diya ho to wapas ADD nahi hota.
+    function syncMyUserRecord() {
+      const me = state.currentUser;
+      if (!me || state.isOwner) return;
+      ecoRef("users").transaction(users => {
+        if (users === null) return users;
+        const list = Array.isArray(users) ? users.slice() : Object.values(users);
+        const i = list.findIndex(u => u && u.email === me.email);
+        if (i === -1) return; // revoked -> abort
+        list[i] = Object.assign({}, list[i], {
+          name: me.name,
+          pass: me.pass,
+          goal: me.goal !== undefined ? me.goal : list[i].goal,
+          logs: state.dailyLogs,
+          targets: state.targets
+        });
+        return cleanJson(list);
+      }).catch(showCloudError);
+    }
+
+    // parts: "user" (default), "users", "pending", "suggestions", "broadcast", "ttt"
+    function syncToCloud(parts) {
+      saveLocal();
+      if (!cloudReady) return;
+      parts = parts || ["user"];
+      const upd = {};
+      if (parts.includes("user")) syncMyUserRecord();
+      if (state.isOwner) {
+        if (parts.includes("users")) upd.users = cleanJson(state.users);
+        if (parts.includes("pending")) upd.pendingUsers = cleanJson(state.pendingUsers);
+        if (parts.includes("suggestions")) upd.suggestions = cleanJson(state.suggestions);
+        if (parts.includes("broadcast")) upd.broadcast = cleanJson(state.broadcast);
+      }
+      if (parts.includes("ttt")) upd.ttt = cleanJson(state.ttt);
+      if (Object.keys(upd).length) cloudUpdate(upd);
+    }
+    loadInitial();
+
+    // Drawer Setup
+    const sideDrawer = document.getElementById("sideDrawer");
+    const drawerOverlay = document.getElementById("drawerOverlay");
+    document.getElementById("openDrawerBtn").onclick = () => {
+      sideDrawer.classList.add("open");
+      drawerOverlay.classList.add("active");
+    };
+    function closeDrawer() {
+      sideDrawer.classList.remove("open");
+      drawerOverlay.classList.remove("active");
+    }
+    document.getElementById("closeDrawerBtn").onclick = closeDrawer;
+    drawerOverlay.onclick = closeDrawer;
+
+    // Authentication
+    let isRegisterMode = false;
+    const authModal = document.getElementById("authModal");
+    const authToggleLink = document.getElementById("authToggleLink");
+    const authToggleText = document.getElementById("authToggleText");
+    const authName = document.getElementById("authName");
+    const loginActionBtn = document.getElementById("loginActionBtn");
+    const authAlert = document.getElementById("authAlert");
+
+    authToggleLink.onclick = (e) => {
+      e.preventDefault();
+      isRegisterMode = !isRegisterMode;
+      authName.style.display = isRegisterMode ? "block" : "none";
+      loginActionBtn.textContent = isRegisterMode ? "Request Access" : "Sign In";
+      authToggleText.textContent = isRegisterMode ? "Already registered?" : "Don't have an account?";
+      authToggleLink.textContent = isRegisterMode ? "Sign In" : "Request Access";
+      authAlert.style.display = "none";
+    };
+
+    loginActionBtn.onclick = () => {
+      const email = document.getElementById("authEmail").value.trim().toLowerCase();
+      const pass = document.getElementById("authPass").value;
+      const name = authName.value.trim();
+
+      if (!email || !pass) return showAuthAlert("Please provide username and password.");
+
+      // Check Owner / Monitor Credentials
+      if (email === OWNER_EMAIL && pass === OWNER_PASS) {
+        state.currentUser = { email, name: "Gourav (Monitor)", pass: OWNER_PASS, role: "owner", tag: "Super Monitor" };
+        state.isOwner = true;
+        authSuccess();
+        return;
+      }
+
+      if (!cloudReady) return showAuthAlert("Server se connect ho raha hai... 2-3 second ruk kar dobara try karein.");
+
+      if (isRegisterMode) {
+        if (!name) return showAuthAlert("Full name is required.");
+        if (state.users.some(u => u.email === email) || state.pendingUsers.some(u => u.email === email)) {
+          return showAuthAlert("This username/email is already taken or pending approval.");
+        }
+        pushToList("pendingUsers", { email, pass, name, id: Date.now(), tag: "Student", goal: "Self Study" }, 0, "email");
+        alert("Registration request submitted to cloud! Waiting for Gourav to approve.");
+        authToggleLink.click();
+      } else {
+        const user = state.users.find(u => u.email === email && u.pass === pass);
+        if (!user) {
+          if (state.pendingUsers.some(u => u.email === email)) {
+            return showAuthAlert("Account approval is pending by Monitor.");
+          }
+          return showAuthAlert("Invalid credentials.");
+        }
+        state.currentUser = user;
+        state.isOwner = false;
+        if (user.logs) state.dailyLogs = user.logs;
+        if (user.targets) state.targets = user.targets.map(t => ({ ...t, running: false }));
+        authSuccess();
+      }
+    };
+
+    function showAuthAlert(msg) {
+      authAlert.textContent = msg;
+      authAlert.style.display = "block";
+    }
+
+    function authSuccess() {
+      authModal.style.display = "none";
+      document.getElementById("roleBadge").textContent = state.isOwner ? "👑 Monitor" : state.currentUser.name;
+      if (state.isOwner) {
+        document.getElementById("roleBadge").classList.add("admin");
+        document.getElementById("drawerMonitorBtn").style.display = "flex";
+        document.getElementById("quickMonitorBtn").style.display = "flex";
+        document.getElementById("bottomMemberBtn").style.display = "none";
+        document.getElementById("monitorBroadcastSection").style.display = "block";
+        document.getElementById("drawerLiveBtn").style.display = "flex";
+        document.getElementById("quickLiveBtn").style.display = "flex";
+      } else {
+        const c0 = state.commands[emailKey(state.currentUser.email)];
+        seenCmdId = (c0 && c0.id) || 0; // purane commands dobara execute nahi honge
+      }
+      document.getElementById("userCamBadge").textContent = state.currentUser.name + " (You)";
+      document.getElementById("profName").value = state.currentUser.name;
+      document.getElementById("profEmail").value = state.currentUser.email;
+      document.getElementById("profPass").value = state.currentUser.pass;
+      document.getElementById("profGoal").value = state.currentUser.goal || "";
+
+      initApp();
+      toast("Welcome back, " + state.currentUser.name);
+    }
+
+    function doLogout() {
+      bankTime();
+      const hadSeat = !!state.mySeat;
+      if (hadSeat) {
+        const seatNow = state.mySeat;
+        delete state.roomOccupants[seatNow];
+        state.mySeat = null;
+        cloudUpdate({ ["roomOccupants/" + seatNow]: null });
+      }
+      if (localMediaStream) {
+        localMediaStream.getTracks().forEach(t => t.stop());
+      }
+      // Reload se pehle cloud write ko thoda time do
+      setTimeout(() => location.reload(), hadSeat ? 700 : 0);
+    }
+    document.getElementById("quickLogoutBtn").onclick = doLogout;
+    document.getElementById("drawerLogoutBtn").onclick = doLogout;
+
+    function initApp() {
+      renderSeats();
+      renderMonitorDesk();
+      renderMeetingGrid();
+      renderPublicMembers();
+      renderMonitorPanel();
+      renderHistory();
+      renderTargets();
+      startTicker();
+    }
+
+    // Time Calculations & Persistence
+    function getTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function bankTime() {
+      if (state.mySeat && !state.isPaused && state.studySince) {
+        const elapsed = (Date.now() - state.studySince) / 1000;
+        const key = getTodayKey();
+        state.dailyLogs[key] = (state.dailyLogs[key] || 0) + elapsed;
+        state.studySince = Date.now();
+        syncToCloud();
+      }
+    }
+
+    function totalToday() {
+      let t = state.dailyLogs[getTodayKey()] || 0;
+      if (state.mySeat && !state.isPaused && state.studySince) {
+        t += (Date.now() - state.studySince) / 1000;
+      }
+      return t;
+    }
+
+    // SPECIAL MONITOR DESK (VIP HEAD STATION)
+    function renderMonitorDesk() {
+      const box = document.getElementById("monitorStationBox");
+      const pill = document.getElementById("monitorDeskStatusPill");
+      const btn = document.getElementById("claimMonitorDeskBtn");
+      const monitorOccupant = liveOcc(state.roomOccupants["MONITOR-HEAD"]);
+
+      if (monitorOccupant) {
+        box.classList.add("live");
+        pill.style.background = "var(--accent)";
+        pill.style.color = "#fff";
+        pill.innerHTML = `🟢 LIVE MONITORING (${escapeHtml(monitorOccupant.name)})`;
+        btn.textContent = state.isOwner ? "Leave Monitor Desk" : "Occupied";
+        btn.className = state.isOwner ? "btn btn-danger btn-sm" : "btn btn-outline btn-sm";
+      } else {
+        box.classList.remove("live");
+        pill.style.background = "#374151";
+        pill.style.color = "#9ca3af";
+        pill.innerHTML = `⚪ Monitor Desk Free`;
+        btn.textContent = "Sit as Monitor";
+        btn.className = "btn btn-warning btn-sm";
+      }
+    }
+
+    document.getElementById("claimMonitorDeskBtn").onclick = () => {
+      if (!state.isOwner) {
+        return alert("⚠️ Yeh chair sirf Head Monitor (Gourav) ke liye reserved hai! Aap normal student desks par baith sakte hain.");
+      }
+
+      if (state.mySeat === "MONITOR-HEAD") {
+        // Leave monitor chair
+        bankTime();
+        disarmSeatCleanup("MONITOR-HEAD");
+        delete state.roomOccupants["MONITOR-HEAD"];
+        state.mySeat = null;
+        state.studySince = 0;
+        cloudUpdate({ "roomOccupants/MONITOR-HEAD": null });
+        document.getElementById("currentDeskLabel").textContent = "Unassigned";
+        document.getElementById("liveStatusTag").textContent = "Idle";
+        document.getElementById("liveStatusTag").style.background = "#4b5563";
+        renderMonitorDesk();
+        renderMeetingGrid();
+        toast("Monitor station released.");
+      } else {
+        // Sit on monitor chair
+        claimSeat("MONITOR-HEAD");
+      }
+    };
+
+    // MULTI-DEVICE CLEANUP ON CLAIMING SEAT
+    function claimSeat(seatId) {
+      if (seatId === "MONITOR-HEAD" && !state.isOwner) {
+        return alert("⚠️ Yeh desk sirf Monitor ke liye reserved hai.");
+      }
+
+      if (state.mySeat === seatId) return;
+
+      bankTime();
+      if (state.mySeat) disarmSeatCleanup(state.mySeat);
+
+      // Ek account = ek seat (kisi bhi device par)
+      const seatUpdates = {};
+      Object.keys(state.roomOccupants).forEach(s => {
+        if (state.roomOccupants[s] && state.roomOccupants[s].email === state.currentUser.email) {
+          delete state.roomOccupants[s];
+          seatUpdates["roomOccupants/" + s] = null;
+        }
+      });
+
+      state.mySeat = seatId;
+      state.isPaused = false;
+      state.studySince = Date.now();
+      state.seatedAt = state.studySince;
+      document.getElementById("pauseStudyBtn").textContent = "Pause";
+
+      state.roomOccupants[seatId] = {
+        name: state.currentUser.name,
+        email: state.currentUser.email,
+        tag: state.currentUser.tag || (state.isOwner ? "Head Monitor" : "Student"),
+        since: state.seatedAt,
+        cam: isCamOn,
+        mic: isMicOn
+      };
+      seatUpdates["roomOccupants/" + seatId] = cleanJson(state.roomOccupants[seatId]);
+      cloudUpdate(seatUpdates);
+      armSeatCleanup(seatId);
+
+      document.getElementById("currentDeskLabel").textContent = seatId;
+      document.getElementById("liveStatusTag").textContent = "Studying";
+      document.getElementById("liveStatusTag").style.background = "var(--accent)";
+
+      renderSeats();
+      renderMonitorDesk();
+      renderMeetingGrid();
+      toast("Desk " + seatId + " occupied.");
+    }
+
+    // Tab band / internet jane par seat apne aap free ho jaye
+    function armSeatCleanup(seatId) {
+      try { rtdb.ref("ecosystem/roomOccupants/" + seatId).onDisconnect().remove(); } catch (e) {}
+    }
+    function disarmSeatCleanup(seatId) {
+      try { rtdb.ref("ecosystem/roomOccupants/" + seatId).onDisconnect().cancel(); } catch (e) {}
+    }
+    // Reconnect ke baad ya kisi aur ke overwrite ke baad apni seat wapas sync karo
+    function ensureSeatPresent() {
+      if (!cloudReady || !state.currentUser || !state.mySeat) return;
+      if (!state.isOwner && !state.users.some(u => u.email === state.currentUser.email)) return;
+      const occ = state.roomOccupants[state.mySeat];
+      if (!occ) {
+        state.roomOccupants[state.mySeat] = {
+          name: state.currentUser.name,
+          email: state.currentUser.email,
+          tag: state.currentUser.tag || (state.isOwner ? "Head Monitor" : "Student"),
+          since: state.seatedAt || (state.seatedAt = Date.now()),
+          cam: isCamOn,
+          mic: isMicOn
+        };
+        cloudUpdate({ ["roomOccupants/" + state.mySeat]: cleanJson(state.roomOccupants[state.mySeat]) });
+        armSeatCleanup(state.mySeat);
+        renderSeats();
+        renderMonitorDesk();
+        renderMeetingGrid();
+      } else if (occ.email !== state.currentUser.email) {
+        state.mySeat = null;
+        state.studySince = 0;
+        document.getElementById("currentDeskLabel").textContent = "Unassigned";
+        document.getElementById("liveStatusTag").textContent = "Idle";
+        document.getElementById("liveStatusTag").style.background = "#4b5563";
+        toast("Aapki seat kisi aur ne le li. Dobara desk chuniye.");
+      }
+    }
+
+    function renderSeats() {
+      const container = document.getElementById("seatMatrix");
+      container.innerHTML = "";
+
+      for (let i = 1; i <= TOTAL_DESKS; i++) {
+        const seatId = "D-" + String(i).padStart(2, '0');
+        const occupant = liveOcc(state.roomOccupants[seatId]);
+        const isMine = state.currentUser && occupant && occupant.email === state.currentUser.email;
+        if (isMine) state.mySeat = seatId;
+
+        const d = document.createElement("div");
+        d.className = "seat" + (isMine ? " mine" : occupant ? " occupied" : "");
+
+        let label = "Free";
+        if (isMine) label = "You";
+        else if (occupant) label = occupant.name;
+
+        d.innerHTML = `<span>${seatId}</span><span class="u-name">${escapeHtml(label)}</span>`;
+
+        if (!occupant || isMine) {
+          d.onclick = () => claimSeat(seatId);
+        } else if (state.isOwner) {
+          d.style.cursor = "pointer";
+          d.title = "Tap karke member control kholein";
+          d.onclick = () => openMemberActions(seatId);
+        }
+        container.appendChild(d);
+      }
+    }
+
+    document.getElementById("leaveDeskBtn").onclick = () => {
+      if (!state.mySeat) return toast("No desk assigned.");
+      bankTime();
+      const leavingSeat = state.mySeat;
+      disarmSeatCleanup(leavingSeat);
+      delete state.roomOccupants[leavingSeat];
+      state.mySeat = null;
+      state.studySince = 0;
+      state.isPaused = false;
+      document.getElementById("pauseStudyBtn").textContent = "Pause";
+      cloudUpdate({ ["roomOccupants/" + leavingSeat]: null });
+
+      document.getElementById("currentDeskLabel").textContent = "Unassigned";
+      document.getElementById("liveStatusTag").textContent = "Idle";
+      document.getElementById("liveStatusTag").style.background = "#4b5563";
+      document.getElementById("sessionTimer").textContent = "00:00:00";
+      document.title = "Study Hub By Gourav";
+
+      renderSeats();
+      renderMonitorDesk();
+      renderMeetingGrid();
+      renderHistory();
+      toast("Desk released.");
+    };
+
+    document.getElementById("pauseStudyBtn").onclick = () => {
+      if (!state.mySeat) return;
+      bankTime();
+      state.isPaused = !state.isPaused;
+      state.studySince = Date.now();
+      document.getElementById("pauseStudyBtn").textContent = state.isPaused ? "Resume" : "Pause";
+      document.getElementById("liveStatusTag").textContent = state.isPaused ? "Paused" : "Studying";
+      document.getElementById("liveStatusTag").style.background = state.isPaused ? "var(--warning)" : "var(--accent)";
+      syncToCloud();
+    };
+
+    let tickCount = 0;
+    function startTicker() {
+      setInterval(() => {
+        tickCount++;
+        if (tickCount % 60 === 0) bankTime(); // har minute study time save
+        const todaySeconds = totalToday();
+        document.getElementById("todayLogStat").textContent = fmtHours(todaySeconds);
+
+        if (state.mySeat && !state.isPaused && state.studySince) {
+          const currentDuration = Math.floor((Date.now() - state.studySince) / 1000);
+          const formatted = fmtTime(currentDuration);
+          document.getElementById("sessionTimer").textContent = formatted;
+          document.title = `(${formatted}) Study Hub`;
+        }
+
+        // Active task countdown on Targets Tab and Home Banner
+        if (activeRunningTargetIdx !== null && state.targets[activeRunningTargetIdx]) {
+          const t = state.targets[activeRunningTargetIdx];
+          if (t.running && t.remaining > 0) {
+            t.remaining--;
+            document.getElementById("homeActiveTaskTimer").textContent = fmtTime(t.remaining);
+            renderTargets();
+          } else if (t.remaining <= 0 && t.running) {
+            t.running = false;
+            t.done = true;
+            toast(`Target "${t.subject}" completed! 🎉`);
+            hideHomeTaskBanner();
+            renderTargets();
+            syncToCloud();
+          }
+        }
+      }, 1000);
+    }
+
+    function fmtTime(s) {
+      s = Math.max(0, Math.floor(s));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      if (h > 0) {
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+      }
+      return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
+    }
+
+    function fmtHours(s) {
+      s = Math.max(0, Math.floor(s));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      return `${h}h ${m}m`;
+    }
+
+    // Media Permissions and Handling
+    async function initUserMedia() {
+      if (localMediaStream) return localMediaStream;
+      try {
+        localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        localMediaStream.getAudioTracks().forEach(t => t.enabled = false);
+        isMicOn = false;
+        isCamOn = true;
+
+        const video = document.getElementById("userCam");
+        video.srcObject = localMediaStream;
+        video.style.display = "block";
+        document.getElementById("userCamPlaceholder").style.display = "none";
+        updateControlsUI();
+        return localMediaStream;
+      } catch(err) {
+        try {
+          localMediaStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          isCamOn = true;
+          isMicOn = false;
+          const video = document.getElementById("userCam");
+          video.srcObject = localMediaStream;
+          video.style.display = "block";
+          document.getElementById("userCamPlaceholder").style.display = "none";
+          updateControlsUI();
+          return localMediaStream;
+        } catch(e) {
+          toast("Please allow camera/mic permissions in Chrome Settings.");
+          return null;
+        }
+      }
+    }
+
+    function toggleCamera() {
+      if (!localMediaStream) { initUserMedia(); return; }
+      const videoTrack = localMediaStream.getVideoTracks()[0];
+      if (videoTrack) {
+        isCamOn = !videoTrack.enabled;
+        videoTrack.enabled = isCamOn;
+        document.getElementById("userCam").style.display = isCamOn ? "block" : "none";
+        document.getElementById("userCamPlaceholder").style.display = isCamOn ? "none" : "flex";
+        updateControlsUI();
+        broadcastMediaState();
+      }
+    }
+
+    function toggleMicrophone() {
+      if (!localMediaStream) { initUserMedia(); return; }
+      const audioTrack = localMediaStream.getAudioTracks()[0];
+      if (audioTrack) {
+        isMicOn = !audioTrack.enabled;
+        audioTrack.enabled = isMicOn;
+        updateControlsUI();
+        broadcastMediaState();
+        toast(isMicOn ? "Microphone Unmuted 🎙️" : "Microphone Muted 🔇");
+      }
+    }
+
+    function updateControlsUI() {
+      const camBtn = document.getElementById("toggleCamBtn");
+      const micBtn = document.getElementById("toggleMicBtn");
+      const tCamBtn = document.getElementById("tileCamBtn");
+      const tMicBtn = document.getElementById("tileMicBtn");
+
+      if (camBtn) camBtn.textContent = isCamOn ? "📹 Cam Off" : "📹 Cam On";
+      if (micBtn) micBtn.textContent = isMicOn ? "🎤 Mic Mute" : "🎤 Mic On";
+      if (tCamBtn) { tCamBtn.className = "btn-icon" + (isCamOn ? "" : " off"); tCamBtn.textContent = isCamOn ? "📹" : "🚫"; }
+      if (tMicBtn) { tMicBtn.className = "btn-icon" + (isMicOn ? "" : " off"); tMicBtn.textContent = isMicOn ? "🎤" : "🔇"; }
+    }
+
+    function broadcastMediaState() {
+      if (state.mySeat && state.roomOccupants[state.mySeat]) {
+        state.roomOccupants[state.mySeat].cam = isCamOn;
+        state.roomOccupants[state.mySeat].mic = isMicOn;
+        cloudUpdate({
+          ["roomOccupants/" + state.mySeat + "/cam"]: isCamOn,
+          ["roomOccupants/" + state.mySeat + "/mic"]: isMicOn
+        });
+      }
+    }
+
+    document.getElementById("toggleCamBtn").onclick = toggleCamera;
+    document.getElementById("toggleMicBtn").onclick = toggleMicrophone;
+    document.getElementById("tileCamBtn").onclick = toggleCamera;
+    document.getElementById("tileMicBtn").onclick = toggleMicrophone;
+
+    function renderMeetingGrid() {
+      const container = document.getElementById("cohortVideoTiles");
+      container.innerHTML = "";
+      const ownTile = document.getElementById("userVideoTile");
+      if (ownTile) ownTile.style.display = state.mySeat ? "" : "none";
+
+      let shown = 0;
+      Object.keys(state.roomOccupants).forEach(seatId => {
+        const occ = liveOcc(state.roomOccupants[seatId]);
+        if (!occ) return;
+        if (state.currentUser && occ.email === state.currentUser.email) return;
+        shown++;
+
+        const tile = document.createElement("div");
+        tile.className = "video-tile";
+        tile.innerHTML = `
+          <div class="video-controls-overlay">
+            <span class="btn-icon ${occ.mic ? '' : 'off'}">${occ.mic ? '🎤' : '🔇'}</span>
+            <span class="btn-icon ${occ.cam ? '' : 'off'}">${occ.cam ? '📹' : '🚫'}</span>
+          </div>
+          <div class="video-avatar">${escapeHtml(occ.name.charAt(0).toUpperCase())}</div>
+          <div class="video-badge">
+            <span class="live-dot"></span>
+            <span>${escapeHtml(occ.name)} · ${escapeHtml(seatId)} <b style="color:var(--primary)">[${escapeHtml(occ.tag || 'Student')}]</b></span>
+          </div>
+        `;
+        if (state.isOwner) {
+          const bar = document.createElement("div");
+          bar.style.cssText = "position:absolute; top:8px; left:8px; display:flex; gap:4px; z-index:5;";
+          [["✉️", "msg", "Message bhejein"], ["🔇", "mic", "Mic band karein"], ["🚫", "cam", "Camera band karein"], ["⏏️", "kick", "Seat se hatayein"]].forEach(([ic, act, tt]) => {
+            const b = document.createElement("button");
+            b.className = "btn-icon";
+            b.title = tt;
+            b.textContent = ic;
+            b.onclick = () => monitorAction(seatId, act);
+            bar.appendChild(b);
+          });
+          tile.appendChild(bar);
+        }
+        container.appendChild(tile);
+      });
+
+      if (!shown && !state.mySeat) {
+        container.innerHTML = `<div style="grid-column:1/-1; font-size:12px; color:var(--text-mute); padding:14px 4px;">Abhi koi seat par nahi baitha. Seat par baithte hi yahan video/profile dikhega.</div>`;
+      }
+      renderLiveMembers();
+    }
+
+    // ===== MONITOR LIVE CONTROL + STUDENT SIDE HANDLERS =====
+    function resetSeatUI() {
+      document.getElementById("currentDeskLabel").textContent = "Unassigned";
+      const tag = document.getElementById("liveStatusTag");
+      tag.textContent = "Idle";
+      tag.style.background = "#4b5563";
+      document.getElementById("sessionTimer").textContent = "00:00:00";
+      document.getElementById("pauseStudyBtn").textContent = "Pause";
+      document.title = "Study Hub By Gourav";
+    }
+
+    function showMonitorMessage(text) {
+      const ov = document.createElement("div");
+      ov.className = "modal-overlay";
+      ov.style.zIndex = "300";
+      const box = document.createElement("div");
+      box.className = "modal-box";
+      const h = document.createElement("h3");
+      h.textContent = "📢 Monitor ka message";
+      h.style.marginBottom = "10px";
+      const para = document.createElement("p");
+      para.textContent = text;
+      para.style.cssText = "font-size:14px; line-height:1.5; margin-bottom:14px; word-break:break-word;";
+      const ok = document.createElement("button");
+      ok.className = "btn";
+      ok.style.cssText = "width:100%; justify-content:center;";
+      ok.textContent = "OK";
+      ok.onclick = () => ov.remove();
+      box.append(h, para, ok);
+      ov.appendChild(box);
+      document.body.appendChild(ov);
+    }
+
+    // Monitor ne seat se hataya -> student ka local seat clear (aur ensureSeatPresent wapas nahi baithayega)
+    function handleKick() {
+      if (!state.currentUser || state.isOwner || !state.mySeat) return;
+      const k = state.kicks[emailKey(state.currentUser.email)];
+      if (k && k === state.seatedAt) {
+        bankTime();
+        disarmSeatCleanup(state.mySeat);
+        state.mySeat = null;
+        state.studySince = 0;
+        state.isPaused = false;
+        state.seatedAt = 0;
+        resetSeatUI();
+        renderSeats();
+        renderMonitorDesk();
+        renderMeetingGrid();
+        renderHistory();
+        showMonitorMessage("Monitor ne aapko seat se hata diya hai. Dobara padhne ke liye koi free desk chuniye.");
+      }
+    }
+
+    function forceMedia(kind) {
+      if (localMediaStream) {
+        if (kind === "mic") {
+          localMediaStream.getAudioTracks().forEach(t => t.enabled = false);
+        } else {
+          localMediaStream.getVideoTracks().forEach(t => t.enabled = false);
+          document.getElementById("userCam").style.display = "none";
+          document.getElementById("userCamPlaceholder").style.display = "flex";
+        }
+      }
+      if (kind === "mic") isMicOn = false; else isCamOn = false;
+      updateControlsUI();
+      broadcastMediaState();
+      toast(kind === "mic" ? "🔇 Monitor ne aapka mic band kar diya" : "🚫 Monitor ne aapka camera band kar diya");
+    }
+
+    function handleCommand() {
+      if (!state.currentUser || state.isOwner) return;
+      const c = state.commands[emailKey(state.currentUser.email)];
+      if (!c || !c.id || c.id === seenCmdId) return;
+      seenCmdId = c.id;
+      if (c.type === "mic_off") forceMedia("mic");
+      else if (c.type === "cam_off") forceMedia("cam");
+      else if (c.type === "message") showMonitorMessage(String(c.text || ""));
+    }
+
+    // Owner: revoke ho chuke / unknown ghost seats apne aap saaf
+    function purgeGhostSeats() {
+      if (!state.isOwner || !cloudReady) return;
+      const upd = {};
+      Object.keys(state.roomOccupants).forEach(seat => {
+        if (!isLiveOccupant(state.roomOccupants[seat])) upd["roomOccupants/" + seat] = null;
+      });
+      if (Object.keys(upd).length) cloudUpdate(upd);
+    }
+
+    function sendCommandTo(email, cmd) {
+      cloudUpdate({ ["commands/" + emailKey(email)]: Object.assign({ id: Date.now() + Math.floor(Math.random() * 1000) }, cmd) });
+    }
+
+    window.kickFromSeat = (seatId) => {
+      if (!state.isOwner) return;
+      const occ = state.roomOccupants[seatId];
+      if (!occ) return toast("Yeh seat pehle se khali hai.");
+      if (state.currentUser && occ.email === state.currentUser.email) return toast("Apni seat 'Leave Desk' se chhodein.");
+      if (!confirm(`${occ.name || "Member"} ko ${seatId} se hatana hai?`)) return;
+      const upd = { ["roomOccupants/" + seatId]: null };
+      if (occ.email) upd["kicks/" + emailKey(occ.email)] = occ.since || Date.now();
+      delete state.roomOccupants[seatId];
+      cloudUpdate(upd);
+      renderSeats();
+      renderMonitorDesk();
+      renderMeetingGrid();
+      renderPublicMembers();
+      toast(`${occ.name || "Member"} ko ${seatId} se hata diya.`);
+    };
+
+    window.monitorAction = (seatId, action) => {
+      if (!state.isOwner) return;
+      const occ = state.roomOccupants[seatId];
+      if (!occ) return toast("Yeh seat khali hai.");
+      if (action === "kick") return kickFromSeat(seatId);
+      if (!occ.email || (state.currentUser && occ.email === state.currentUser.email)) return toast("Yeh action apne par nahi chalta.");
+      if (action === "mic") {
+        sendCommandTo(occ.email, { type: "mic_off" });
+        toast(`${occ.name} ka mic band kiya 🔇`);
+      } else if (action === "cam") {
+        sendCommandTo(occ.email, { type: "cam_off" });
+        toast(`${occ.name} ka camera band kiya 🚫`);
+      } else if (action === "msg") {
+        const text = prompt(`${occ.name} ko message bhejein:`);
+        if (text && text.trim()) {
+          sendCommandTo(occ.email, { type: "message", text: text.trim().slice(0, 300) });
+          toast("Message bhej diya ✅");
+        }
+      }
+    };
+
+    window.openMemberActions = (seatId) => {
+      const occ = state.roomOccupants[seatId];
+      if (!occ) return;
+      const ov = document.createElement("div");
+      ov.className = "modal-overlay";
+      ov.style.zIndex = "250";
+      const box = document.createElement("div");
+      box.className = "modal-box";
+      const h = document.createElement("h3");
+      h.style.marginBottom = "4px";
+      h.textContent = `${occ.name} · ${seatId}`;
+      const sub = document.createElement("div");
+      sub.style.cssText = "font-size:12px; color:var(--text-mute); margin-bottom:14px;";
+      sub.textContent = `${occ.tag || "Student"} · Mic ${occ.mic ? "ON" : "OFF"} · Camera ${occ.cam ? "ON" : "OFF"}`;
+      box.append(h, sub);
+      [["✉️ Message bhejein", "msg", "btn-outline"], ["🔇 Mic band karein", "mic", "btn-outline"], ["🚫 Camera band karein", "cam", "btn-outline"], ["⏏️ Seat se hatayein", "kick", "btn-danger"]].forEach(([label, act, cls]) => {
+        const b = document.createElement("button");
+        b.className = "btn " + cls;
+        b.style.cssText = "width:100%; justify-content:center; margin-bottom:8px;";
+        b.textContent = label;
+        b.onclick = () => { ov.remove(); monitorAction(seatId, act); };
+        box.appendChild(b);
+      });
+      const close = document.createElement("button");
+      close.className = "btn btn-outline";
+      close.style.cssText = "width:100%; justify-content:center;";
+      close.textContent = "Band karein";
+      close.onclick = () => ov.remove();
+      box.appendChild(close);
+      ov.appendChild(box);
+      ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+      document.body.appendChild(ov);
+    };
+
+    function renderLiveMembers() {
+      const box = document.getElementById("liveMembersList");
+      if (!box || !state.isOwner) return;
+      const seats = Object.keys(state.roomOccupants).filter(sid => liveOcc(state.roomOccupants[sid]));
+      document.getElementById("liveCountBadge").textContent = seats.length + " Live";
+      box.innerHTML = seats.length ? "" : `<div style="font-size:12px; color:var(--text-mute);">Abhi koi seat par nahi baitha hai.</div>`;
+      seats.forEach(seatId => {
+        const occ = state.roomOccupants[seatId];
+        const isSelf = state.currentUser && occ.email === state.currentUser.email;
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; background:var(--surface); border:1px solid var(--card-border); padding:8px 12px; border-radius:8px;";
+        row.innerHTML = `
+          <div>
+            <b>${escapeHtml(occ.name)}</b> <span class="badge custom-tag">${escapeHtml(occ.tag || 'Student')}</span>${isSelf ? ' <small>(Aap)</small>' : ''}
+            <div style="font-size:11px; color:var(--text-mute); margin-top:2px;">${escapeHtml(seatId)} · ${occ.mic ? '🎤 ON' : '🔇 OFF'} · ${occ.cam ? '📹 ON' : '🚫 OFF'}</div>
+          </div>`;
+        if (!isSelf) {
+          const bar = document.createElement("div");
+          bar.className = "row";
+          [["✉️", "msg", "btn-outline", "Message"], ["🔇", "mic", "btn-outline", "Mic band"], ["🚫", "cam", "btn-outline", "Camera band"], ["⏏️", "kick", "btn-danger", "Seat se hatao"]].forEach(([ic, act, cls, tt]) => {
+            const b = document.createElement("button");
+            b.className = "btn btn-sm " + cls;
+            b.title = tt;
+            b.textContent = ic;
+            b.onclick = () => monitorAction(seatId, act);
+            bar.appendChild(b);
+          });
+          row.appendChild(bar);
+        }
+        box.appendChild(row);
+      });
+    }
+
+    function bulkLiveAction(kind) {
+      const targets = Object.keys(state.roomOccupants)
+        .map(sid => liveOcc(state.roomOccupants[sid]))
+        .filter(o => o && o.email && !(state.currentUser && o.email === state.currentUser.email));
+      if (!targets.length) return toast("Abhi koi live member nahi hai.");
+      if (kind === "msg") {
+        const text = prompt(`Sabhi ${targets.length} live members ko message bhejein:`);
+        if (!text || !text.trim()) return;
+        targets.forEach(o => sendCommandTo(o.email, { type: "message", text: text.trim().slice(0, 300) }));
+        toast("Sabko message bhej diya ✅");
+      } else {
+        targets.forEach(o => sendCommandTo(o.email, { type: kind === "mic" ? "mic_off" : "cam_off" }));
+        toast(kind === "mic" ? "Sabka mic band kiya 🔇" : "Sabka camera band kiya 🚫");
+      }
+    }
+    document.getElementById("liveMsgAllBtn").onclick = () => bulkLiveAction("msg");
+    document.getElementById("liveMicAllBtn").onclick = () => bulkLiveAction("mic");
+    document.getElementById("liveCamAllBtn").onclick = () => bulkLiveAction("cam");
+
+    // TARGETS & HOME SYNCHRONIZED TIMERS
+    document.getElementById("addTargetBtn").onclick = () => {
+      const sub = document.getElementById("targetSubject").value.trim();
+      const mins = parseInt(document.getElementById("targetDuration").value) || 0;
+      if (!sub) return toast("Please enter a subject / target name");
+
+      state.targets.push({
+        id: Date.now(),
+        subject: sub,
+        totalSeconds: mins * 60,
+        remaining: mins * 60,
+        running: false,
+        done: false
+      });
+      document.getElementById("targetSubject").value = "";
+      document.getElementById("targetDuration").value = "";
+      renderTargets();
+      syncToCloud();
+      toast("Target added!");
+    };
+
+    function renderTargets() {
+      const box = document.getElementById("targetListContainer");
+      box.innerHTML = !state.targets.length ? `<div style="font-size:12px; color:var(--text-mute);">No active study targets. Add your first goal above!</div>` : "";
+
+      state.targets.forEach((t, idx) => {
+        const item = document.createElement("div");
+        item.className = "target-item" + (t.done ? " completed" : "");
+        const timerText = t.totalSeconds > 0 ? fmtTime(t.remaining) : "Open-ended";
+
+        item.innerHTML = `
+          <div>
+            <b>${escapeHtml(t.subject)}</b><br>
+            <span style="font-family:var(--font-mono); font-size:12px; color:var(--primary);">${timerText}</span>
+          </div>
+          <div class="row">
+            ${t.totalSeconds > 0 && !t.done ? `<button class="btn btn-sm btn-outline" onclick="toggleTargetTimer(${idx})">${t.running ? 'Pause' : 'Start'}</button>` : ''}
+            <button class="btn btn-sm ${t.done ? 'btn-outline' : 'btn-success'}" onclick="markTargetDone(${idx})">${t.done ? '↩️' : '✓ Done'}</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteTarget(${idx})">✕</button>
+          </div>
+        `;
+        box.appendChild(item);
+      });
+    }
+
+    window.toggleTargetTimer = (idx) => {
+      const target = state.targets[idx];
+      target.running = !target.running;
+
+      if (target.running) {
+        state.targets.forEach((other, oIdx) => {
+          if (oIdx !== idx) other.running = false;
+        });
+        activeRunningTargetIdx = idx;
+        showHomeTaskBanner(target);
+      } else {
+        if (activeRunningTargetIdx === idx) {
+          activeRunningTargetIdx = null;
+          hideHomeTaskBanner();
+        }
+      }
+      renderTargets();
+      syncToCloud();
+    };
+
+    function showHomeTaskBanner(t) {
+      document.getElementById("homeActiveTaskBanner").style.display = "block";
+      document.getElementById("homeActiveTaskName").textContent = t.subject;
+      document.getElementById("homeActiveTaskTimer").textContent = fmtTime(t.remaining);
+      document.getElementById("homePauseTaskBtn").textContent = t.running ? "Pause" : "Resume";
+    }
+
+    function hideHomeTaskBanner() {
+      document.getElementById("homeActiveTaskBanner").style.display = "none";
+    }
+
+    document.getElementById("homePauseTaskBtn").onclick = () => {
+      if (activeRunningTargetIdx !== null) {
+        toggleTargetTimer(activeRunningTargetIdx);
+      }
+    };
+
+    document.getElementById("homeDoneTaskBtn").onclick = () => {
+      if (activeRunningTargetIdx !== null) {
+        markTargetDone(activeRunningTargetIdx);
+      }
+    };
+
+    window.markTargetDone = (idx) => {
+      state.targets[idx].done = !state.targets[idx].done;
+      state.targets[idx].running = false;
+      if (activeRunningTargetIdx === idx) {
+        activeRunningTargetIdx = null;
+        hideHomeTaskBanner();
+      }
+      renderTargets();
+      syncToCloud();
+    };
+
+    window.deleteTarget = (idx) => {
+      if (activeRunningTargetIdx === idx) {
+        activeRunningTargetIdx = null;
+        hideHomeTaskBanner();
+      }
+      state.targets.splice(idx, 1);
+      renderTargets();
+      syncToCloud();
+    };
+
+    // REAL-TIME COMMUNITY CHAT & UNREAD NOTIFICATION DOT
+    function handleChatBadge() {
+      const unreadCount = state.chat.length - (state.lastReadChatCount || 0);
+      const showDot = unreadCount > 0;
+      document.getElementById("bottomChatDot").style.display = showDot ? "inline-block" : "none";
+      document.getElementById("drawerChatDot").style.display = showDot ? "inline-block" : "none";
+    }
+
+    function renderChatMessages() {
+      const box = document.getElementById("chatContainer");
+      box.innerHTML = !state.chat.length ? `<div style="text-align:center; font-size:12px; color:var(--text-mute); margin-top:20px;">No messages yet. Say hello to peers! 👋</div>` : "";
+
+      state.chat.forEach(msg => {
+        const isMine = state.currentUser && msg.senderEmail === state.currentUser.email;
+        const msgEl = document.createElement("div");
+        msgEl.className = "chat-msg " + (isMine ? "mine" : "others");
+        msgEl.innerHTML = `<div class="chat-meta"><b>${escapeHtml(msg.senderName)}</b> · ${escapeHtml(msg.time)}</div><div>${escapeHtml(msg.text)}</div>`;
+        box.appendChild(msgEl);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    document.getElementById("sendChatBtn").onclick = sendChatMessage;
+    document.getElementById("chatInput").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendChatMessage();
+    });
+
+    function sendChatMessage() {
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if (!text || !state.currentUser) return;
+
+      const d = new Date();
+      const timeStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+
+      const chatMsg = {
+        id: Date.now(),
+        senderName: state.currentUser.name,
+        senderEmail: state.currentUser.email,
+        text: text,
+        time: timeStr
+      };
+      state.chat.push(chatMsg);
+
+      if (state.chat.length > 200) state.chat.shift();
+      state.lastReadChatCount = state.chat.length;
+
+      pushToList("chat", chatMsg, 200);
+      saveLocal();
+      input.value = "";
+      renderChatMessages();
+      handleChatBadge();
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag] || tag));
+    }
+
+    // PUBLIC MEMBERS DIRECTORY
+    function renderPublicMembers() {
+      const listEl = document.getElementById("publicMembersList");
+      listEl.innerHTML = "";
+      let onlineCount = 0;
+
+      state.users.forEach(u => {
+        let deskOccupied = "Offline";
+        Object.keys(state.roomOccupants).forEach(seatId => {
+          if (state.roomOccupants[seatId] && state.roomOccupants[seatId].email === u.email) {
+            deskOccupied = `Desk ${seatId} (Studying Now)`;
+            onlineCount++;
+          }
+        });
+
+        const isOnline = deskOccupied.includes("Studying");
+        const d = document.createElement("div");
+        d.style = "background:var(--surface); border:1px solid var(--card-border); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
+        d.innerHTML = `
+          <div>
+            <b>${escapeHtml(u.name)}</b> <span class="badge custom-tag">${escapeHtml(u.tag || 'Student')}</span>
+            <div style="font-size:11px; color:var(--text-mute); margin-top:2px;">Target: ${escapeHtml(u.goal || 'Self-Paced')}</div>
+          </div>
+          <div>
+            <span style="font-size:11px; font-weight:700; color:${isOnline ? 'var(--accent)' : '#4b5563'};">${isOnline ? '🟢 ' + deskOccupied : '⚪ Offline'}</span>
+          </div>
+        `;
+        listEl.appendChild(d);
+      });
+      document.getElementById("onlineMemberCount").textContent = `${onlineCount} Active in Hall`;
+    }
+
+    // GLOBAL BROADCAST (MONITOR RADIO)
+    document.getElementById("startBroadcastBtn").onclick = () => {
+      const url = document.getElementById("broadcastUrl").value.trim();
+      const vid = extractYouTubeId(url);
+      if (!vid) return toast("Invalid YouTube URL");
+
+      state.broadcast = {
+        vid: vid,
+        startedBy: state.currentUser.name,
+        at: Date.now()
+      };
+      syncToCloud(["broadcast"]);
+      toast("Broadcasting track globally to all students!");
+    };
+
+    document.getElementById("stopBroadcastBtn").onclick = () => {
+      state.broadcast = null;
+      syncToCloud(["broadcast"]);
+      toast("Broadcast stopped.");
+    };
+
+    function handleBroadcastSync() {
+      const banner = document.getElementById("globalRadioBanner");
+      const player = document.getElementById("globalYtPlayer");
+      if (state.broadcast && state.broadcast.vid) {
+        banner.style.display = "block";
+        document.getElementById("globalRadioTitle").textContent = `${state.broadcast.startedBy} is broadcasting a study track`;
+        if (!isGlobalMuted) {
+          player.src = `https://www.youtube-nocookie.com/embed/${state.broadcast.vid}?autoplay=1`;
+        }
+      } else {
+        banner.style.display = "none";
+        player.src = "";
+      }
+    }
+
+    document.getElementById("toggleGlobalAudioBtn").onclick = () => {
+      isGlobalMuted = !isGlobalMuted;
+      const player = document.getElementById("globalYtPlayer");
+      const btn = document.getElementById("toggleGlobalAudioBtn");
+      if (isGlobalMuted) {
+        player.src = "";
+        btn.textContent = "🔈 Unmute";
+      } else {
+        if (state.broadcast && state.broadcast.vid) {
+          player.src = `https://www.youtube-nocookie.com/embed/${state.broadcast.vid}?autoplay=1`;
+        }
+        btn.textContent = "🔊 Mute";
+      }
+    };
+
+    // STUDENT SUGGESTIONS & SONG QUEUE
+    document.getElementById("submitSuggestBtn").onclick = () => {
+      const type = document.getElementById("suggestType").value;
+      const msg = document.getElementById("suggestMessage").value.trim();
+      if (!msg) return toast("Please enter a suggestion message or URL");
+
+      pushToList("suggestions", {
+        id: Date.now(),
+        from: state.currentUser.name,
+        email: state.currentUser.email,
+        type: type,
+        message: msg,
+        date: new Date().toLocaleDateString()
+      });
+      document.getElementById("suggestMessage").value = "";
+      toast("Suggestion delivered to Monitor!");
+    };
+
+    // MULTIPLAYER BREAK GAME: TIC-TAC-TOE
+    function renderTttBoard() {
+      const boardEl = document.getElementById("tttBoard");
+      boardEl.innerHTML = "";
+      const t = state.ttt;
+
+      let statusMsg = `Player X: ${t.pX || 'Empty'} | Player O: ${t.pO || 'Empty'}`;
+      if (t.winner === "Draw") statusMsg = "🤝 Match Draw!";
+      else if (t.winner) statusMsg = `🏆 Winner: Player ${t.winner}!`;
+      else if (t.pX && t.pO) statusMsg = `Current Turn: Player ${t.turn}`;
+      document.getElementById("tttStatus").textContent = statusMsg;
+
+      t.board.forEach((val, i) => {
+        const cell = document.createElement("div");
+        cell.className = "ttt-cell";
+        cell.textContent = val;
+        cell.onclick = () => handleTttClick(i);
+        boardEl.appendChild(cell);
+      });
+    }
+
+    document.getElementById("joinXBtn").onclick = () => {
+      if (!state.ttt.pX && state.ttt.pO !== state.currentUser.name) {
+        state.ttt.pX = state.currentUser.name;
+        syncToCloud(["ttt"]);
+        toast("Joined as Player X");
+      }
+    };
+    document.getElementById("joinOBtn").onclick = () => {
+      if (!state.ttt.pO && state.ttt.pX !== state.currentUser.name) {
+        state.ttt.pO = state.currentUser.name;
+        syncToCloud(["ttt"]);
+        toast("Joined as Player O");
+      }
+    };
+    document.getElementById("resetTttBtn").onclick = () => {
+      state.ttt = { board: Array(9).fill(""), turn: "X", pX: "", pO: "" };
+      syncToCloud(["ttt"]);
+      toast("Tic-Tac-Toe reset");
+    };
+
+    function handleTttClick(idx) {
+      const t = state.ttt;
+      if (t.board[idx] || t.winner) return;
+      if ((t.turn === "X" && t.pX === state.currentUser.name) || (t.turn === "O" && t.pO === state.currentUser.name)) {
+        t.board[idx] = t.turn;
+        t.turn = t.turn === "X" ? "O" : "X";
+        checkTttWinner();
+        syncToCloud(["ttt"]);
+      } else {
+        toast("Not your turn or you haven't joined!");
+      }
+    }
+
+    function checkTttWinner() {
+      const b = state.ttt.board;
+      const wins = [
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+      ];
+      for (let w of wins) {
+        if (b[w[0]] && b[w[0]] === b[w[1]] && b[w[0]] === b[w[2]]) {
+          state.ttt.winner = b[w[0]];
+          return;
+        }
+      }
+      if (b.every(c => c)) state.ttt.winner = "Draw";
+    }
+
+    // MULTI-DEVICE NAME & PROFILE SYNCHRONIZATION
+    document.getElementById("saveProfileBtn").onclick = () => {
+      const newName = document.getElementById("profName").value.trim();
+      const newPass = document.getElementById("profPass").value;
+      const newGoal = document.getElementById("profGoal").value.trim();
+      if (!newName || !newPass) return toast("Name and password required.");
+
+      state.currentUser.name = newName;
+      state.currentUser.pass = newPass;
+      state.currentUser.goal = newGoal;
+
+      // Update in cloud user directory
+      if (!state.isOwner) {
+        const idx = state.users.findIndex(u => u.email === state.currentUser.email);
+        if (idx !== -1) {
+          state.users[idx].name = newName;
+          state.users[idx].pass = newPass;
+          state.users[idx].goal = newGoal;
+        }
+      }
+
+      // Update occupied desk instantly
+      if (state.mySeat && state.roomOccupants[state.mySeat]) {
+        state.roomOccupants[state.mySeat].name = newName;
+        cloudUpdate({ ["roomOccupants/" + state.mySeat + "/name"]: newName });
+      }
+
+      syncToCloud();
+      document.getElementById("roleBadge").textContent = state.isOwner ? "👑 Monitor" : newName;
+      document.getElementById("userCamBadge").textContent = newName + " (You)";
+      renderSeats();
+      renderMeetingGrid();
+      renderPublicMembers();
+      toast("Profile updated across all devices!");
+    };
+
+    // MONITOR COMMAND CENTER: COMPLETE PERMISSION CONTROLS
+    function renderMonitorPanel() {
+      const pendingBox = document.getElementById("pendingList");
+      const acceptedBox = document.getElementById("acceptedMembersList");
+      const suggestBox = document.getElementById("receivedSuggestionsList");
+
+      document.getElementById("pendingCount").textContent = state.pendingUsers.length;
+      document.getElementById("suggestionCount").textContent = (state.suggestions || []).length;
+
+      pendingBox.innerHTML = !state.pendingUsers.length ? `<div style="font-size:12px; color:var(--text-mute);">No pending access requests.</div>` : "";
+      state.pendingUsers.forEach((u, idx) => {
+        const d = document.createElement("div");
+        d.style = "display:flex; justify-content:space-between; align-items:center; background:var(--surface); padding:8px 12px; border-radius:8px;";
+        d.innerHTML = `
+          <div><b>${escapeHtml(u.name)}</b><br><small style="color:var(--text-mute)">${escapeHtml(u.email)}</small></div>
+          <div class="row">
+            <button class="btn btn-success btn-sm" onclick="approveUser(${idx})">Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectUser(${idx})">Reject</button>
+          </div>
+        `;
+        pendingBox.appendChild(d);
+      });
+
+      suggestBox.innerHTML = !(state.suggestions && state.suggestions.length) ? `<div style="font-size:12px; color:var(--text-mute);">No suggestions received yet.</div>` : "";
+      (state.suggestions || []).forEach((s, idx) => {
+        const d = document.createElement("div");
+        d.style = "background:var(--surface); padding:8px 12px; border-radius:8px; font-size:12px;";
+        d.innerHTML = `
+          <div style="display:flex; justify-content:space-between;">
+            <b>${escapeHtml(s.from)} (${escapeHtml(s.type)})</b>
+            <button class="btn btn-danger btn-sm" style="padding:2px 6px;" onclick="deleteSuggestion(${idx})">✕</button>
+          </div>
+          <div style="margin-top:4px; color:var(--text); word-break:break-all;">${escapeHtml(s.message)}</div>
+        `;
+        suggestBox.appendChild(d);
+      });
+
+      acceptedBox.innerHTML = !state.users.length ? `<div style="font-size:12px; color:var(--text-mute);">No registered students yet.</div>` : "";
+      state.users.forEach((u, idx) => {
+        const d = document.createElement("div");
+        d.style = "display:flex; justify-content:space-between; align-items:center; background:var(--surface); padding:8px 12px; border-radius:8px;";
+        d.innerHTML = `
+          <div>
+            <b>${escapeHtml(u.name)}</b> <span class="badge custom-tag">${escapeHtml(u.tag || 'Student')}</span><br>
+            <small style="color:var(--text-mute)">${escapeHtml(u.email)}</small>
+          </div>
+          <div class="row">
+            <button class="btn btn-outline btn-sm" onclick="assignTag(${idx})">Tag</button>
+            <button class="btn btn-danger btn-sm" onclick="removeMember(${idx})">Revoke & Kick</button>
+          </div>
+        `;
+        acceptedBox.appendChild(d);
+      });
+    }
+
+    window.approveUser = (idx) => {
+      const user = state.pendingUsers.splice(idx, 1)[0];
+      state.users.push(user);
+      syncToCloud(["users", "pending"]);
+      renderMonitorPanel();
+      renderPublicMembers();
+      toast("Access approved for " + user.name);
+    };
+
+    window.rejectUser = (idx) => {
+      state.pendingUsers.splice(idx, 1);
+      syncToCloud(["pending"]);
+      renderMonitorPanel();
+      toast("Request rejected");
+    };
+
+    // INSTANT REVOKE AND SEAT/CAMERA PURGE
+    window.removeMember = (idx) => {
+      const targetUser = state.users[idx];
+      if (confirm(`Revoke all access for ${targetUser.name}? This will instantly kick them from their seat and camera.`)) {
+        const upd = {};
+        Object.keys(state.roomOccupants).forEach(seatId => {
+          if (state.roomOccupants[seatId] && state.roomOccupants[seatId].email === targetUser.email) {
+            delete state.roomOccupants[seatId];
+            upd["roomOccupants/" + seatId] = null;
+          }
+        });
+
+        state.users.splice(idx, 1);
+        upd.users = cleanJson(state.users);
+        cloudUpdate(upd);
+        renderSeats();
+        renderMeetingGrid();
+        renderPublicMembers();
+        renderMonitorPanel();
+        toast(`User ${targetUser.name} purged from ecosystem.`);
+      }
+    };
+
+    window.assignTag = (idx) => {
+      const tag = prompt("Assign Member Badge / Tag:", state.users[idx].tag || "Student");
+      if (tag) {
+        state.users[idx].tag = tag;
+        syncToCloud(["users"]);
+        renderPublicMembers();
+        renderMeetingGrid();
+        renderMonitorPanel();
+        toast("Member tag updated!");
+      }
+    };
+
+    window.deleteSuggestion = (idx) => {
+      state.suggestions.splice(idx, 1);
+      syncToCloud(["suggestions"]);
+      renderMonitorPanel();
+    };
+
+    // YouTube Helper
+    document.getElementById("playCustomYtBtn").onclick = () => {
+      const rawUrl = document.getElementById("customYtUrl").value.trim();
+      const vid = extractYouTubeId(rawUrl);
+      if (vid) {
+        document.getElementById("ytPlayerFrame").src = `https://www.youtube-nocookie.com/embed/${vid}?autoplay=1`;
+        toast("Playing song!");
+      } else {
+        toast("Invalid YouTube URL");
+      }
+    };
+
+    function extractYouTubeId(url) {
+      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+      const match = url.match(regExp);
+      return (match && match[2].length === 11) ? match[2] : null;
+    }
+
+    // Picture-in-Picture Mini View
+    const pipBtn = document.getElementById("pipBtn");
+    const pipCanvas = document.getElementById("pipCanvas");
+    const pipCtx = pipCanvas.getContext("2d");
+    const pipVideo = document.getElementById("pipVideo");
+
+    function renderPipCanvas() {
+      pipCtx.fillStyle = "#090d16";
+      pipCtx.fillRect(0, 0, 400, 240);
+
+      pipCtx.fillStyle = "#3b82f6";
+      pipCtx.font = "bold 22px sans-serif";
+      pipCtx.fillText("Study Hub By Gourav", 20, 45);
+
+      pipCtx.fillStyle = "#8e9db7";
+      pipCtx.font = "16px monospace";
+      pipCtx.fillText("Desk: " + (state.mySeat || "Unassigned"), 20, 85);
+
+      const elapsed = (state.mySeat && !state.isPaused && state.studySince)
+        ? Math.floor((Date.now() - state.studySince) / 1000)
+        : 0;
+
+      pipCtx.fillStyle = "#10b981";
+      pipCtx.font = "bold 44px monospace";
+      pipCtx.fillText(fmtTime(elapsed), 20, 150);
+
+      pipCtx.fillStyle = state.isPaused ? "#f59e0b" : "#10b981";
+      pipCtx.font = "16px sans-serif";
+      pipCtx.fillText("Status: " + (state.isPaused ? "Paused" : (state.mySeat ? "Active Focus" : "Idle")), 20, 205);
+    }
+    setInterval(renderPipCanvas, 500);
+
+    pipBtn.onclick = async () => {
+      try {
+        if (document.pictureInPictureElement) {
+          await document.exitPictureInPicture();
+        } else {
+          pipVideo.srcObject = pipCanvas.captureStream(10);
+          await pipVideo.play();
+          await pipVideo.requestPictureInPicture();
+        }
+      } catch(err) {
+        toast("Picture-in-Picture not supported on this browser.");
+      }
+    };
+
+    function renderHistory() {
+      const container = document.getElementById("historyLogContainer");
+      container.innerHTML = "";
+      const dates = Object.keys(state.dailyLogs).sort().reverse();
+      let lifetime = 0;
+      if (!dates.length) container.innerHTML = `<p style="font-size:12px; color:var(--text-mute); text-align:center;">No study logs recorded yet.</p>`;
+      dates.forEach(d => {
+        const sec = state.dailyLogs[d];
+        lifetime += sec;
+        const row = document.createElement("div");
+        row.className = "history-row";
+        row.innerHTML = `<span>📅 ${d}</span><b>${fmtHours(sec)}</b>`;
+        container.appendChild(row);
+      });
+      document.getElementById("totalLogStat").textContent = fmtHours(lifetime);
+    }
+
+    // Navigation Switcher & Badge Reset
+    function switchTab(targetId) {
+      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".drawer-nav-item").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll("nav.bottom-nav button").forEach(b => b.classList.remove("active"));
+
+      const targetTab = document.getElementById(targetId);
+      if (targetTab) targetTab.classList.add("active");
+      const navBtn = document.querySelector(`nav.bottom-nav button[data-tab="${targetId}"]`);
+      if (navBtn) navBtn.classList.add("active");
+      const drawerBtn = document.querySelector(`.drawer-nav-item[data-tab="${targetId}"]`);
+      if (drawerBtn) drawerBtn.classList.add("active");
+
+      // Clear chat unread badge upon viewing Chat
+      if (targetId === "tab-chat") {
+        state.lastReadChatCount = state.chat.length;
+        saveLocal();
+        handleChatBadge();
+      }
+
+      closeDrawer();
+    }
+
+    document.querySelectorAll("nav.bottom-nav button, .drawer-nav-item").forEach(btn => {
+      btn.onclick = () => {
+        const target = btn.getAttribute("data-tab");
+        if (target) switchTab(target);
+      };
+    });
+
+    document.getElementById("themeToggleBtn").onclick = () => {
+      const isDark = document.body.getAttribute("data-theme") !== "light";
+      document.body.setAttribute("data-theme", isDark ? "light" : "dark");
+    };
+
+    window.addEventListener("pagehide", () => { if (state.currentUser) bankTime(); });
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    }
+  </script>
+</body>
+</html>
