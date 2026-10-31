@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Study Hub By Gourav | Virtual Coworking Ecosystem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<style>
+:root{--bg:#090d16;--surface:#111726;--card:#172033;--card-border:#222f49;--text:#f1f5f9;--text-mute:#8e9db7;--primary:#3b82f6;--primary-hover:#2563eb;--accent:#10b981;--danger:#ef4444;--warning:#f59e0b;
+--seat-free-bg:rgba(16,185,129,.12);--seat-free-border:#10b981;--seat-free-text:#34d399;--seat-mine-bg:#2563eb;--seat-mine-border:#60a5fa;--seat-mine-text:#fff;--seat-occ-bg:rgba(239,68,68,.18);--seat-occ-border:#ef4444;--seat-occ-text:#fca5a5;
+--font-main:'Plus Jakarta Sans',sans-serif;--font-mono:'JetBrains Mono',monospace;--radius:12px;--btn-radius:8px}
+[data-theme="light"]{--bg:#f8fafc;--surface:#fff;--card:#fff;--card-border:#e2e8f0;--text:#0f172a;--text-mute:#64748b;--primary:#2563eb;--primary-hover:#1d4ed8;--accent:#059669;--seat-free-bg:#ecfdf5;--seat-free-border:#059669;--seat-free-text:#065f46;--seat-occ-bg:#fef2f2;--seat-occ-border:#dc2626;--seat-occ-text:#991b1b}
+*{box-sizing:border-box;margin:0;padding:0;font-family:var(--font-main)}
+body{background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:95px;position:relative;overflow-x:hidden}
+body::after{content:"";position:fixed;bottom:0;left:0;width:200%;height:3px;background:linear-gradient(90deg,#3b82f6,#10b981,#ec4899,#3b82f6);animation:bottomWave 6s linear infinite;z-index:60}
+@keyframes bottomWave{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+header{position:sticky;top:0;z-index:50;background:var(--surface);border-bottom:1px solid var(--card-border);padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+.header-left{display:flex;align-items:center;gap:12px}.menu-trigger{font-size:20px;background:none;border:0;color:var(--text);cursor:pointer;padding:4px 8px;border-radius:6px}
+.brand{font-weight:800;font-size:16px}.brand span{color:var(--primary)}.header-actions{display:flex;align-items:center;gap:8px}
+.side-drawer{position:fixed;top:0;left:-320px;width:300px;height:100vh;background:var(--surface);border-right:1px solid var(--card-border);z-index:150;padding:20px;transition:.3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;gap:10px;overflow-y:auto}
+.side-drawer.open{left:0}.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:140;display:none}.drawer-overlay.active{display:block}
+.drawer-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--card-border)}
+.drawer-nav-item{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:var(--text);cursor:pointer;font-size:13px;font-weight:600;border:0;background:none;width:100%;text-align:left;transition:.2s;position:relative}
+.drawer-nav-item:hover,.drawer-nav-item.active{background:var(--primary);color:#fff}
+main{max-width:1020px;margin:auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--card-border);border-radius:var(--radius);padding:16px;margin-bottom:16px;transition:border-color .2s}.card:hover{border-color:rgba(59,130,246,.4)}
+.card-title{font-size:14px;font-weight:700;display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:8px}
+.badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:700;background:var(--primary);color:#fff;display:inline-flex;align-items:center;gap:4px}.badge.admin{background:var(--warning);color:#000}.badge.custom-tag{background:#6366f1}
+.btn{background:var(--primary);color:#fff;border:0;padding:8px 14px;border-radius:var(--btn-radius);font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:.2s}
+.btn:hover{background:var(--primary-hover);transform:translateY(-1px)}.btn:disabled{opacity:.6;cursor:wait}.btn-sm{padding:5px 10px;font-size:11px}
+.btn-outline{background:transparent;border:1px solid var(--card-border);color:var(--text)}.btn-outline:hover{background:var(--card-border)}
+.btn-danger{background:var(--danger)}.btn-danger:hover{background:#dc2626}.btn-success{background:var(--accent)}.btn-warning{background:var(--warning);color:#000}
+input,select,textarea{width:100%;background:var(--surface);border:1px solid var(--card-border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:13px;outline:none;margin-bottom:10px}
+input:focus,select:focus,textarea:focus{border-color:var(--primary)}input[type=range]{padding:0;border:0}
+/* Head Monitor desk: compact, bigger than a normal seat */
+.mon{width:min(100%,210px);min-height:92px;margin:0 auto 14px;border:2px dashed var(--warning);background:rgba(245,158,11,.1);border-radius:12px;padding:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;cursor:pointer;transition:.25s}
+.mon:hover{transform:translateY(-2px)}.mon.live{border:2px solid var(--accent);background:rgba(16,185,129,.12);box-shadow:0 0 16px rgba(16,185,129,.35)}
+.mon-t{font-size:11px;font-weight:800;color:var(--warning)}.mon.live .mon-t{color:var(--accent)}.mon-s{font-size:11px;font-weight:700;color:var(--text-mute)}
+.seat-legend{display:flex;gap:14px;margin-top:14px;font-size:11px;font-weight:600;flex-wrap:wrap;justify-content:center}.legend-item{display:flex;align-items:center;gap:6px}.legend-dot{width:10px;height:10px;border-radius:3px}
+.seat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(75px,1fr));gap:10px;margin-top:10px}
+.seat{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;cursor:pointer;font-weight:700;transition:.25s cubic-bezier(.2,.8,.2,1);position:relative;border:1.5px solid var(--seat-free-border);background:var(--seat-free-bg);color:var(--seat-free-text)}
+.seat:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 4px 14px rgba(0,0,0,.25)}
+.seat.mine{background:var(--seat-mine-bg)!important;border:2px solid var(--seat-mine-border)!important;color:var(--seat-mine-text)!important;box-shadow:0 0 15px rgba(37,99,235,.6)}
+.seat.occupied{background:var(--seat-occ-bg)!important;border:1.5px solid var(--seat-occ-border)!important;color:var(--seat-occ-text)!important;cursor:not-allowed}
+.seat .u-name{font-size:9px;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:3px;font-weight:500}
+.video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-top:10px}
+.video-tile{background:#000;border-radius:10px;aspect-ratio:16/10;position:relative;overflow:hidden;border:1px solid var(--card-border);display:flex;align-items:center;justify-content:center;color:#fff}
+.video-tile video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.video-avatar{width:50px;height:50px;border-radius:50%;background:#334155;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700}
+.video-badge{position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.7);font-size:11px;padding:3px 8px;border-radius:4px;backdrop-filter:blur(4px);display:flex;align-items:center;gap:5px}
+.video-controls-overlay{position:absolute;top:8px;right:8px;display:flex;gap:6px;z-index:5}
+.btn-icon{background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.2);color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer}.btn-icon.off{background:var(--danger)}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.clock-display{font-family:var(--font-mono);font-size:34px;font-weight:700;text-align:center;margin:8px 0;color:var(--accent)}
+.target-item{background:var(--surface);border:1px solid var(--card-border);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.target-item.completed{opacity:.6;text-decoration:line-through}
+/* Chat: input bottom me fixed */
+.chat-card{display:flex;flex-direction:column;height:calc(100dvh - 210px);min-height:340px;margin-bottom:0}
+.chat-box{flex:1;overflow-y:auto;background:var(--surface);border:1px solid var(--card-border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.chat-msg{max-width:84%;padding:8px 12px;border-radius:10px;font-size:13px;line-height:1.4;position:relative}
+.chat-msg.mine{align-self:flex-end;background:var(--primary);color:#fff}.chat-msg.others{align-self:flex-start;background:var(--card);border:1px solid var(--card-border)}
+.chat-meta{font-size:10px;opacity:.8;margin-bottom:3px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}.chat-del{background:none;border:0;cursor:pointer;font-size:11px;color:inherit;opacity:.8}
+.chat-input-row{display:flex;gap:8px;margin-top:10px}.chat-input-row input{margin-bottom:0}
+.unread-dot{width:8px;height:8px;background:var(--danger);border-radius:50%;display:inline-block;margin-left:4px}
+.ttt-board{display:grid;grid-template-columns:repeat(3,80px);gap:6px;justify-content:center;margin:12px auto}
+.ttt-cell{width:80px;height:80px;background:var(--surface);border:2px solid var(--card-border);border-radius:8px;font-size:28px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer}.ttt-cell:hover{border-color:var(--primary)}
+nav.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--card-border);display:flex;z-index:40}
+nav.bottom-nav button{flex:1;padding:12px 4px;background:none;border:0;color:var(--text-mute);font-size:11px;font-weight:600;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;transition:color .2s;position:relative}
+nav.bottom-nav button.active{color:var(--primary);border-top:2px solid var(--primary)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+.modal-box{background:var(--surface);border:1px solid var(--card-border);border-radius:14px;padding:22px;width:100%;max-width:440px;text-align:left;max-height:90vh;overflow-y:auto}.modal-box.wide{max-width:640px;padding:16px}
+.tab-content{display:none}.tab-content.active{display:block}.row{display:flex;gap:8px;align-items:center}.wrap{flex-wrap:wrap}.sub{font-size:11px;color:var(--text-mute);margin-top:2px}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:#111827;color:#fff;padding:8px 16px;border-radius:30px;font-size:12px;border:1px solid #374151;z-index:200;pointer-events:none;opacity:0;transition:.3s}.toast.show{opacity:1}
+.lnk{cursor:pointer;color:var(--primary)}.lrow{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--card-border);padding:10px 12px;border-radius:8px}
+.credv{display:none;margin-top:4px;font-size:12px;background:rgba(245,158,11,.12);border:1px solid var(--warning);border-radius:6px;padding:4px 8px;word-break:break-all}.credv.show{display:block}
+.cred{background:none;border:1px dashed var(--card-border);color:var(--text);border-radius:6px;font-size:11px;padding:2px 8px;cursor:pointer;margin-top:3px}
+/* Analytics */
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}.stat{background:var(--surface);border:1px solid var(--card-border);border-radius:8px;padding:10px 6px;text-align:center}.stat div{font-size:10px;color:var(--text-mute);margin-bottom:2px}.stat b{font-size:15px}
+.sec-t{font-size:12px;font-weight:700;margin:16px 0 8px;display:flex;justify-content:space-between;align-items:center}
+.bars{display:flex;gap:3px;height:150px;align-items:stretch;background:var(--surface);border:1px solid var(--card-border);border-radius:8px;padding:18px 6px 6px}
+.bcol{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center}.bwrap{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center}
+.bar{width:70%;max-width:26px;background:linear-gradient(180deg,var(--primary),var(--accent));border-radius:4px 4px 0 0;position:relative;min-height:1px}
+.bv{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);font-size:8px;white-space:nowrap;color:var(--text-mute)}.blab{font-size:8px;color:var(--text-mute);height:12px;margin-top:3px}
+.heat{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,1fr);grid-template-columns:repeat(12,1fr);gap:3px}.hc{aspect-ratio:1;border-radius:3px}
+.hc0{background:var(--surface);border:1px solid var(--card-border)}.hc1{background:rgba(16,185,129,.3)}.hc2{background:rgba(16,185,129,.55)}.hc3{background:rgba(16,185,129,.8)}.hc4{background:#10b981}.hcx{visibility:hidden}
+.srow{margin-bottom:8px;font-size:12px}.sbar{height:8px;border-radius:5px;background:var(--surface);border:1px solid var(--card-border);overflow:hidden;margin-top:3px}.sbar i{display:block;height:100%;border-radius:5px}
+.sess{display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--card-border);font-size:12px}.sess-d{font-size:11px;font-weight:700;margin-top:10px;color:var(--primary)}
+.range button{padding:3px 9px}.range button.on{background:var(--primary);color:#fff}
+/* Beat wave */
+#waveCanvas{position:fixed;left:0;right:0;bottom:56px;width:100%;height:64px;pointer-events:none;z-index:30;opacity:0;transition:opacity .6s}#waveCanvas.on{opacity:.95}
+</style>
+</head>
+<body data-theme="light">
+<div class="drawer-overlay" id="drawerOverlay"></div>
+
+<div class="side-drawer" id="sideDrawer">
+  <div class="drawer-header"><div style="font-weight:800">Ecosystem Menu</div><button class="btn btn-outline btn-sm" id="closeDrawerBtn">✕</button></div>
+  <div style="font-size:11px;text-transform:uppercase;color:var(--text-mute);font-weight:700">Essential Navigation</div>
+  <button class="drawer-nav-item active" data-tab="tab-library">🏛️ Study Hall & Video</button>
+  <button class="drawer-nav-item" data-tab="tab-targets">🎯 Daily Targets & Timers</button>
+  <button class="drawer-nav-item" data-tab="tab-chat">💬 Community Chat <span id="drawerChatDot" class="unread-dot" style="display:none"></span></button>
+  <button class="drawer-nav-item" data-tab="tab-music">🎵 Custom & Global Radio</button>
+  <button class="drawer-nav-item" data-tab="tab-members">👥 Members Directory</button>
+  <div style="font-size:11px;text-transform:uppercase;color:var(--text-mute);font-weight:700;margin-top:10px">Extra Tools & Breaks</div>
+  <button class="drawer-nav-item" data-tab="tab-history">📊 Study Analytics (Kab · Kya · Kitna)</button>
+  <button class="drawer-nav-item" data-tab="tab-game">🎮 Live Multiplayer Break Game</button>
+  <button class="drawer-nav-item" data-tab="tab-feedback">💡 Student Suggestion & Songs</button>
+  <button class="drawer-nav-item" data-tab="tab-pdfs">📑 Vault PDF Documents</button>
+  <button class="drawer-nav-item" data-tab="tab-profile">👤 Profile & Credentials</button>
+  <button class="drawer-nav-item" id="drawerLiveBtn" data-tab="tab-live" style="display:none;color:var(--accent)">🟢 Live Members Control</button>
+  <button class="drawer-nav-item" id="drawerMonitorBtn" data-tab="tab-monitor" style="display:none;color:var(--warning)">🛡️ Monitor Command Center</button>
+  <div style="margin-top:auto;padding-top:14px;border-top:1px solid var(--card-border)"><button class="btn btn-danger" style="width:100%;justify-content:center" id="drawerLogoutBtn">Sign Out</button></div>
+</div>
+
+<header>
+  <div class="header-left"><button class="menu-trigger" id="openDrawerBtn">☰</button><div class="brand">📚 Study Hub <span>By Gourav</span></div></div>
+  <div class="header-actions">
+    <button class="btn btn-outline btn-sm" id="pipBtn" title="Picture-in-Picture Mini View">📌 Mini</button>
+    <span id="roleBadge" class="badge">Student</span>
+    <button class="btn btn-outline btn-sm" id="themeToggleBtn">🌓</button>
+    <button class="btn btn-danger btn-sm" id="quickLogoutBtn">Logout</button>
+  </div>
+</header>
+
+<!-- Login / Register / Forgot -->
+<div class="modal-overlay" id="authModal"><div class="modal-box">
+  <h2 id="authTitle" style="font-size:18px;margin-bottom:4px">Study Hub Login</h2>
+  <p id="authSub" style="color:var(--text-mute);font-size:12px;margin-bottom:16px">Sign in to enter the virtual study rooms</p>
+  <div id="authAlert" style="display:none;color:var(--danger);font-size:12px;margin-bottom:10px"></div>
+  <input type="text" id="authName" placeholder="Full Name" style="display:none">
+  <input type="text" id="authEmail" placeholder="Username / Email" autocapitalize="off" autocomplete="username">
+  <input type="password" id="authPass" placeholder="Password" autocomplete="current-password">
+  <select id="authQ" style="display:none"></select>
+  <input type="text" id="authA" placeholder="Secret answer (password bhulne par kaam aayega)" style="display:none">
+  <button class="btn" style="width:100%;justify-content:center" id="loginActionBtn">Sign In</button>
+  <div style="margin-top:14px;font-size:12px;text-align:center;display:flex;flex-direction:column;gap:8px">
+    <a href="#" id="forgotLink" style="color:var(--warning);font-weight:600">Forgot password?</a>
+    <div><span id="authToggleText">Naya account?</span> <a href="#" id="authToggleLink" style="color:var(--primary);font-weight:600">Create Account</a></div>
+  </div>
+</div></div>
+
+<main>
+  <div class="card" id="globalRadioBanner" style="border-left:4px solid var(--accent);display:none">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><span class="badge" style="background:var(--accent)">📻 Monitor Radio Live</span><span style="font-size:12px;margin-left:8px" id="globalRadioTitle">Gourav is broadcasting study music</span></div>
+      <button class="btn btn-sm btn-outline" id="toggleGlobalAudioBtn">🔊 Mute</button>
+    </div>
+    <iframe id="globalYtPlayer" width="1" height="1" style="display:none" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+  </div>
+
+  <div class="card" id="homeActiveTaskBanner" style="border-left:4px solid var(--primary);display:none;background:rgba(59,130,246,.1)">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><span class="badge">🎯 Active Target</span><b style="font-size:13px;margin-left:6px" id="homeActiveTaskName">Subject</b><span style="font-family:var(--font-mono);font-size:14px;margin-left:8px;color:var(--accent)" id="homeActiveTaskTimer">00:00</span></div>
+      <div class="row"><button class="btn btn-sm btn-outline" id="homePauseTaskBtn">Pause</button><button class="btn btn-sm btn-success" id="homeDoneTaskBtn">✓ Done</button></div>
+    </div>
+  </div>
+
+  <!-- LIBRARY -->
+  <section id="tab-library" class="tab-content active">
+    <div class="card">
+      <div class="card-title"><span>Current Desk: <b id="currentDeskLabel" style="color:var(--primary)">Unassigned</b></span><span id="liveStatusTag" class="badge" style="background:#4b5563">Idle</span></div>
+      <div class="clock-display" id="sessionTimer">00:00:00</div>
+      <input type="text" id="currentSubject" list="subjList" placeholder="📖 Kya padh rahe ho? (e.g. Maths)" style="text-align:center">
+      <datalist id="subjList"></datalist>
+      <div class="row" style="justify-content:center"><button class="btn btn-outline" id="pauseStudyBtn">Pause</button><button class="btn btn-danger" id="leaveDeskBtn">Leave Desk</button></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>Live Study Room (All Students Video Grid)</span><div class="row"><button class="btn btn-outline btn-sm" id="toggleCamBtn">📹 Camera</button><button class="btn btn-outline btn-sm" id="toggleMicBtn">🎤 Mic</button></div></div>
+      <div class="video-grid" id="videoGrid">
+        <div class="video-tile" id="userVideoTile">
+          <div class="video-controls-overlay"><button class="btn-icon off" id="tileMicBtn">🔇</button><button class="btn-icon off" id="tileCamBtn">📹</button></div>
+          <video id="userCam" autoplay playsinline muted style="display:none"></video>
+          <div class="video-avatar" id="userCamPlaceholder">👤</div>
+          <div class="video-badge"><span class="live-dot"></span><span id="userCamBadge">You</span></div>
+        </div>
+        <div id="cohortVideoTiles" style="display:contents"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><span>Reading Hall Desks Matrix</span><span style="font-size:11px;color:var(--text-mute)">Tap green desk to sit</span></div>
+      <div class="mon" id="monitorStationBox"><div class="mon-t">👑 Head Monitor Command Desk (Gourav)</div><div class="mon-s" id="monitorDeskStatusPill">⚪ Free</div></div>
+      <div class="seat-grid" id="seatMatrix"></div>
+      <div class="seat-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Free (Khali)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--primary)"></div> Your Seat (Aapki)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--danger)"></div> Occupied (Full)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TARGETS -->
+  <section id="tab-targets" class="tab-content"><div class="card">
+    <div class="card-title">🎯 Today's Study Targets & Subject Timers</div>
+    <p style="font-size:12px;color:var(--text-mute);margin-bottom:12px">Add what you plan to study today and set a countdown timer. Timer start karte hi wo subject aapki study analytics me count hoga.</p>
+    <div class="row" style="margin-bottom:10px"><input type="text" id="targetSubject" placeholder="Subject / Chapter Name" style="margin-bottom:0"><input type="number" id="targetDuration" placeholder="Mins" style="width:90px;margin-bottom:0"><button class="btn btn-success" id="addTargetBtn">+ Add</button></div>
+    <div id="targetListContainer" style="margin-top:14px"></div>
+  </div></section>
+
+  <!-- CHAT -->
+  <section id="tab-chat" class="tab-content"><div class="card chat-card">
+    <div class="card-title"><span>💬 Members Study Chat</span><button class="btn btn-danger btn-sm" id="clearChatBtn" style="display:none">🗑️ Clear All</button></div>
+    <div class="chat-box" id="chatContainer"></div>
+    <div class="chat-input-row"><input type="text" id="chatInput" placeholder="Type a message to all members..."><button class="btn" id="sendChatBtn">Send</button></div>
+  </div></section>
+
+  <!-- MUSIC -->
+  <section id="tab-music" class="tab-content">
+    <div class="card">
+      <div class="card-title">Custom & Global Radio</div>
+      <div style="background:var(--surface);padding:12px;border-radius:8px;margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px">Paste Your Personal Song URL:</label>
+        <div class="row"><input type="text" id="customYtUrl" placeholder="https://www.youtube.com/watch?v=..." style="margin-bottom:0"><button class="btn btn-success" id="playCustomYtBtn">Play</button></div>
+      </div>
+      <div style="position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000;margin-bottom:12px">
+        <iframe id="ytPlayerFrame" width="100%" height="100%" src="https://www.youtube-nocookie.com/embed/jfKfPfyJRdk?enablejsapi=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+      <div id="monitorBroadcastSection" style="display:none;background:rgba(245,158,11,.1);border:1px solid var(--warning);padding:12px;border-radius:8px;margin-top:14px">
+        <div style="font-size:13px;font-weight:700;color:var(--warning);margin-bottom:6px">👑 Monitor Broadcast to All Students:</div>
+        <div class="row"><input type="text" id="broadcastUrl" placeholder="YouTube URL to broadcast" style="margin-bottom:0"><button class="btn btn-warning" id="startBroadcastBtn">Broadcast</button><button class="btn btn-outline btn-sm" id="stopBroadcastBtn">Stop</button></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>🌊 Beat Wave</span><span id="waveState" class="badge" style="background:#4b5563">Idle</span></div>
+      <div class="row wrap" style="margin-bottom:10px"><button class="btn btn-outline btn-sm" id="waveToggleBtn">🌊 Wave: Auto</button><button class="btn btn-outline btn-sm" id="waveMicBtn">🎤 Real Beat (Mic)</button></div>
+      <label style="font-size:12px;font-weight:600">Tempo: <b id="bpmVal">110</b> BPM</label>
+      <input type="range" id="bpmRange" min="60" max="180" value="110">
+      <p class="sub">Song chalte hi screen ke neeche rang-birangi wave beat ke saath behti hai. YouTube ki audio browser ko nahi milti, isliye Auto mode BPM ke hisaab se rhythm chalata hai. "Real Beat" on karoge to mic se asli awaaz sunkar wave beat par chalegi.</p>
+    </div>
+  </section>
+
+  <!-- MEMBERS -->
+  <section id="tab-members" class="tab-content"><div class="card">
+    <div class="card-title"><span>👥 Study Hub Members Directory</span><span class="badge" id="onlineMemberCount">0 Online</span></div>
+    <div id="publicMembersList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div></section>
+
+  <!-- GAME -->
+  <section id="tab-game" class="tab-content"><div class="card" style="text-align:center">
+    <div class="card-title">🎮 Live Multiplayer Break Game: Tic-Tac-Toe</div>
+    <div style="margin:10px 0;font-size:13px">Status: <b id="tttStatus" style="color:var(--primary)">Waiting for players</b></div>
+    <div class="row wrap" style="justify-content:center;margin-bottom:12px"><button class="btn btn-sm btn-outline" id="joinXBtn">Join as Player X</button><button class="btn btn-sm btn-outline" id="joinOBtn">Join as Player O</button><button class="btn btn-sm btn-danger" id="resetTttBtn">Reset Board</button></div>
+    <div class="ttt-board" id="tttBoard"></div>
+  </div></section>
+
+  <!-- SUGGESTIONS -->
+  <section id="tab-feedback" class="tab-content"><div class="card">
+    <div class="card-title">💡 Student Suggestion & Song Request Box</div>
+    <select id="suggestType"><option value="Feature / Improvement">Feature / App Improvement</option><option value="Study Track Request">Study Track / Song Request</option><option value="General Feedback">General Feedback</option></select>
+    <textarea id="suggestMessage" rows="3" placeholder="Write your suggestion or paste study track link..."></textarea>
+    <button class="btn" id="submitSuggestBtn">Submit Suggestion</button>
+  </div></section>
+
+  <!-- ANALYTICS -->
+  <section id="tab-history" class="tab-content"><div class="card"><div class="card-title">📊 Study Analytics</div><div id="analyticsBox"></div></div></section>
+
+  <!-- PDF -->
+  <section id="tab-pdfs" class="tab-content"><div class="card">
+    <div class="card-title"><span>Persistent Study Documents</span><button class="btn btn-sm" id="uploadPdfTrigger">+ Upload PDF</button></div>
+    <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none">
+    <div id="pdfShelfContainer" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div></section>
+
+  <!-- PROFILE -->
+  <section id="tab-profile" class="tab-content"><div class="card">
+    <div class="card-title">Profile & Security Settings</div>
+    <label style="font-size:12px;font-weight:600">Display Name:</label><input type="text" id="profName">
+    <label style="font-size:12px;font-weight:600">Username / Email (Read-only):</label><input type="text" id="profEmail" readonly style="opacity:.7">
+    <label style="font-size:12px;font-weight:600">Change Password:</label><input type="password" id="profPass">
+    <label style="font-size:12px;font-weight:600">Target Goal / Exam:</label><input type="text" id="profGoal" placeholder="e.g. UPSC / BPSC / Software Developer">
+    <button class="btn" id="saveProfileBtn">Save Profile Changes</button>
+  </div></section>
+
+  <!-- LIVE (admin) -->
+  <section id="tab-live" class="tab-content"><div class="card" style="border-left:4px solid var(--accent)">
+    <div class="card-title"><span>🟢 Live Members Control</span><span class="badge" id="liveCountBadge" style="background:var(--accent)">0 Live</span></div>
+    <p class="sub" id="liveSummary" style="margin-bottom:10px"></p>
+    <div class="row wrap" style="margin-bottom:12px"><button class="btn btn-outline btn-sm" id="liveMsgAllBtn">📢 Sabko message</button><button class="btn btn-outline btn-sm" id="liveMicAllBtn">🔇 Sabka mic band</button><button class="btn btn-outline btn-sm" id="liveCamAllBtn">🚫 Sabka camera band</button></div>
+    <div id="liveMembersList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div></section>
+
+  <!-- MONITOR (admin) -->
+  <section id="tab-monitor" class="tab-content"><div class="card" style="border-left:4px solid var(--warning)">
+    <div class="card-title"><span>🛡️ Monitor Command Center (Gourav)</span><span class="badge admin">Super-Admin</span></div>
+    <h4 style="font-size:13px;margin:10px 0 8px">Registered Students (<span id="memberCount">0</span>)</h4>
+    <input type="text" id="userSearch" placeholder="🔍 Naam ya username se dhoondo...">
+    <p class="sub" style="margin:-4px 0 8px">Username par tap karo → ID & password dikhega. 👁 se student ka poora data (credentials, analytics, sessions) khulega.</p>
+    <div id="acceptedMembersList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <h4 style="font-size:13px;margin:16px 0 8px">Received Student Suggestions (<span id="suggestionCount">0</span>)</h4>
+    <div id="receivedSuggestionsList" style="display:flex;flex-direction:column;gap:8px"></div>
+  </div></section>
+</main>
+
+<canvas id="waveCanvas"></canvas>
+
+<nav class="bottom-nav">
+  <button class="active" data-tab="tab-library">🏛️<span>Library</span></button>
+  <button data-tab="tab-targets">🎯<span>Targets</span></button>
+  <button data-tab="tab-chat" id="bottomChatBtn">💬<span>Chat</span><span id="bottomChatDot" class="unread-dot" style="display:none;position:absolute;top:8px;right:20%"></span></button>
+  <button data-tab="tab-music">🎵<span>Radio</span></button>
+  <button data-tab="tab-members" id="bottomMemberBtn">👥<span>Members</span></button>
+  <button id="quickLiveBtn" data-tab="tab-live" style="display:none">🟢<span>Live</span></button>
+  <button id="quickMonitorBtn" data-tab="tab-monitor" style="display:none">🛡️<span>Monitor</span></button>
+</nav>
+
+<div id="toast" class="toast">Notice</div>
+<canvas id="pipCanvas" width="400" height="240" style="display:none"></canvas>
+<video id="pipVideo" autoplay playsinline muted style="position:fixed;bottom:0;left:0;width:2px;height:2px;opacity:0;pointer-events:none"></video>
+
+<script>
