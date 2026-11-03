@@ -1,0 +1,3436 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <title>Study Hub By Gourav | Virtual Coworking Ecosystem</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase Realtime Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --card: #ffffff;
+      --card-border: #e2e8f0;
+      --text: #0f172a;
+      --text-mute: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --accent: #059669;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+
+      /* Desk Indicators */
+      --seat-free-bg: #ecfdf5;
+      --seat-free-border: #059669;
+      --seat-free-text: #065f46;
+
+      --seat-mine-bg: #2563eb;
+      --seat-mine-border: #60a5fa;
+      --seat-mine-text: #ffffff;
+
+      --seat-occ-bg: #fef2f2;
+      --seat-occ-border: #dc2626;
+      --seat-occ-text: #991b1b;
+
+      --font-main: 'Plus Jakarta Sans', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --radius: clamp(10px, 1.5vw, 14px);
+      --btn-radius: 8px;
+      --bottom-bar-height: 64px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #090d16;
+      --surface: #111726;
+      --card: #172033;
+      --card-border: #222f49;
+      --text: #f1f5f9;
+      --text-mute: #8e9db7;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --accent: #10b981;
+      --seat-free-bg: rgba(16, 185, 129, 0.12);
+      --seat-free-border: #10b981;
+      --seat-free-text: #34d399;
+      --seat-occ-bg: rgba(239, 68, 68, 0.18);
+      --seat-occ-border: #ef4444;
+      --seat-occ-text: #fca5a5;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-main); -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding-bottom: calc(var(--bottom-bar-height) + env(safe-area-inset-bottom, 16px));
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: var(--surface); border-bottom: 1px solid var(--card-border);
+      padding: clamp(8px, 1.2vh, 12px) clamp(12px, 2vw, 24px);
+      display: flex; justify-content: space-between; align-items: center;
+      padding-top: max(8px, env(safe-area-inset-top));
+    }
+    .header-left { display: flex; align-items: center; gap: clamp(8px, 1.5vw, 14px); }
+    .menu-trigger { background: none; border: 0; color: var(--text); cursor: pointer; padding: 6px; display: flex; align-items: center; border-radius: 6px; }
+    .brand { font-weight: 800; font-size: clamp(14px, 2vw, 17px); display: flex; align-items: center; gap: 6px; }
+    .brand span { color: var(--primary); }
+    .header-actions { display: flex; align-items: center; gap: 6px; }
+
+    /* Universal Responsive Drawer */
+    .side-drawer {
+      position: fixed; top: 0; left: -340px; width: min(320px, 85vw); height: 100vh; height: 100dvh;
+      background: var(--surface); border-right: 1px solid var(--card-border);
+      z-index: 150; padding: 18px; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; flex-direction: column; gap: 6px; overflow-y: auto;
+    }
+    .side-drawer.open { transform: translateX(340px); left: -340px; }
+    .drawer-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+      z-index: 140; display: none;
+    }
+    .drawer-overlay.active { display: block; }
+    .drawer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--card-border); margin-bottom: 6px; }
+    .drawer-nav-item {
+      display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 8px;
+      color: var(--text); cursor: pointer; font-size: 13px; font-weight: 600; border: 0;
+      background: none; width: 100%; text-align: left; transition: 0.15s; position: relative;
+    }
+    .drawer-nav-item:hover, .drawer-nav-item.active { background: var(--primary); color: #fff; }
+
+    /* Fluid Main Container */
+    main {
+      width: 100%;
+      max-width: 1180px;
+      margin: auto;
+      padding: clamp(10px, 1.8vw, 24px);
+    }
+
+    .card {
+      background: var(--card); border: 1px solid var(--card-border);
+      border-radius: var(--radius); padding: clamp(12px, 1.8vw, 20px); margin-bottom: clamp(10px, 1.5vw, 18px);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+    .card-title {
+      font-size: clamp(13px, 1.4vw, 15px); font-weight: 700; display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 12px;
+    }
+
+    .badge {
+      font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 700;
+      background: var(--primary); color: #fff; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .badge.admin { background: var(--warning); color: #000; }
+    .badge.custom-tag { background: #6366f1; }
+
+    .btn {
+      background: var(--primary); color: #fff; border: 0; padding: clamp(7px, 1vw, 9px) clamp(10px, 1.4vw, 15px);
+      border-radius: var(--btn-radius); font-size: 13px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; white-space: nowrap;
+    }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-sm { padding: 5px 8px; font-size: 11px; }
+    .btn-outline { background: transparent; border: 1px solid var(--card-border); color: var(--text); }
+    .btn-outline:hover { background: var(--card-border); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-success { background: var(--accent); }
+    .btn-warning { background: var(--warning); color: #000; }
+
+    input, select, textarea {
+      width: 100%; background: var(--surface); border: 1px solid var(--card-border);
+      color: var(--text); padding: clamp(8px, 1.2vw, 11px) 12px; border-radius: 8px; font-size: 13px;
+      outline: none; margin-bottom: 10px;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+
+    /* Head Monitor Command Desk */
+    .monitor-station-box {
+      max-width: min(520px, 100%);
+      margin: 0 auto clamp(12px, 2vw, 18px) auto;
+      background: rgba(245, 158, 11, 0.08);
+      border: 1.5px dashed var(--warning);
+      border-radius: 10px;
+      padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.5vw, 16px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+    .monitor-station-box.live {
+      border: 1.5px solid var(--accent);
+      background: rgba(16, 185, 129, 0.12);
+      box-shadow: 0 0 14px rgba(16, 185, 129, 0.25);
+    }
+
+    /* Auto-Fluid Desks Grid */
+    .seat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(clamp(60px, 9vw, 82px), 1fr));
+      gap: clamp(6px, 1vw, 12px);
+      margin-top: 10px;
+    }
+    .seat {
+      aspect-ratio: 1; border-radius: 8px; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; font-size: clamp(10px, 1.1vw, 12px); cursor: pointer;
+      font-weight: 700; transition: 0.15s ease; position: relative;
+      border: 1.5px solid var(--seat-free-border);
+      background: var(--seat-free-bg); color: var(--seat-free-text);
+      user-select: none;
+    }
+    .seat:hover { transform: translateY(-2px); }
+    .seat.mine {
+      background: var(--seat-mine-bg) !important; border: 2px solid var(--seat-mine-border) !important;
+      color: var(--seat-mine-text) !important; box-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+    }
+    .seat.occupied {
+      background: var(--seat-occ-bg) !important; border: 1.5px solid var(--seat-occ-border) !important;
+      color: var(--seat-occ-text) !important; cursor: not-allowed;
+    }
+    .seat .u-name { font-size: clamp(8px, 0.9vw, 10px); max-width: 90%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 2px; font-weight: 500; }
+
+    .seat-legend {
+      display: flex; justify-content: center; flex-wrap: wrap; gap: clamp(8px, 2vw, 20px);
+      margin-top: 14px; font-size: 11px; font-weight: 600;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* ============================================================ */
+    /* WEBRTC MULTI-USER VIDEO GRID STYLES (TURN & AUTOPLAY FIXED)  */
+    /* ============================================================ */
+    .video-call-ecosystem {
+      background: #090e17;
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .video-call-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      color: #f3f4f6;
+    }
+    .video-grid-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(clamp(150px, 24vw, 240px), 1fr));
+      gap: 10px;
+      padding: 12px;
+      max-height: 480px;
+      overflow-y: auto;
+      min-height: 220px;
+      align-items: center;
+      justify-content: center;
+      background: #030712;
+    }
+    .video-tile {
+      position: relative;
+      aspect-ratio: 4/3;
+      background: #111827;
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1.5px solid #1f2937;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .video-tile.mine-tile {
+      border-color: var(--primary);
+    }
+    .video-tile video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      background: #000;
+    }
+    .video-avatar-placeholder {
+      position: absolute;
+      inset: 0;
+      background: #1e293b;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      gap: 6px;
+      font-weight: 700;
+    }
+    .video-avatar-circle {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 800;
+    }
+    .video-tile-badge {
+      position: absolute;
+      bottom: 8px;
+      left: 8px;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+      max-width: 80%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      z-index: 2;
+    }
+    .video-tile-status {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 4px;
+      z-index: 2;
+    }
+    .video-status-icon {
+      background: rgba(0,0,0,0.6);
+      padding: 3px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+    .video-call-controls {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(8px, 2vw, 16px);
+      padding: 10px 14px;
+      background: #111827;
+      border-top: 1px solid #1f2937;
+      flex-wrap: wrap;
+    }
+    .call-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 0;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: transform 0.15s, background 0.2s;
+      color: #fff;
+    }
+    .call-btn:hover { transform: scale(1.06); }
+    .call-btn.btn-mute { background: #374151; }
+    .call-btn.btn-mute.off { background: #ef4444; }
+    .call-btn.btn-cam { background: #374151; }
+    .call-btn.btn-cam.off { background: #ef4444; }
+    .call-btn.btn-flip { background: #4f46e5; }
+    .call-btn.btn-hangup { background: #dc2626; border-radius: 10px; width: auto; padding: 0 16px; font-weight: 700; font-size: 12px; gap: 6px; }
+
+    .clock-display {
+      font-family: var(--font-mono); font-size: clamp(28px, 5vw, 42px); font-weight: 700;
+      text-align: center; margin: 6px 0; color: var(--accent);
+    }
+
+    /* WhatsApp Style Docked Chat */
+    .chat-wrapper {
+      display: flex; flex-direction: column;
+      height: clamp(340px, 60vh, 560px);
+      background: var(--surface);
+      border: 1px solid var(--card-border); border-radius: 10px; overflow: hidden;
+    }
+    .chat-box {
+      flex: 1; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .chat-msg {
+      max-width: min(85%, 480px); padding: 8px 12px; border-radius: 12px; font-size: 13px; line-height: 1.4;
+    }
+    .chat-msg.mine { align-self: flex-end; background: var(--primary); color: #fff; border-bottom-right-radius: 2px; }
+    .chat-msg.others { align-self: flex-start; background: var(--card); border: 1px solid var(--card-border); border-bottom-left-radius: 2px; }
+    .chat-meta { font-size: 10px; opacity: 0.8; margin-bottom: 2px; display: flex; justify-content: space-between; gap: 8px; }
+    .chat-actions-btn { background: none; border: 0; color: inherit; opacity: 0.6; cursor: pointer; padding: 0 2px; }
+    .chat-actions-btn:hover { opacity: 1; }
+    .chat-input-bar {
+      padding: 8px 12px; background: var(--card); border-top: 1px solid var(--card-border);
+      display: flex; gap: 8px; align-items: center;
+    }
+    .chat-input-bar input { margin-bottom: 0; }
+
+    /* Fixed Bottom Navigation Bar */
+    nav.bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--card-border);
+      display: flex; z-index: 50;
+      height: var(--bottom-bar-height);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    nav.bottom-nav button {
+      flex: 1; padding: 8px 4px; background: none; border: 0; color: var(--text-mute);
+      font-size: clamp(9px, 1.1vw, 11px); font-weight: 600; cursor: pointer; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px; transition: color 0.15s; position: relative;
+    }
+    nav.bottom-nav button.active { color: var(--primary); border-top: 2px solid var(--primary); }
+
+    /* Unread Messages Pill Counter */
+    .unread-badge {
+      background: var(--danger);
+      color: #ffffff;
+      font-size: 10px;
+      font-weight: 700;
+      line-height: 1;
+      padding: 2px 5px;
+      border-radius: 10px;
+      min-width: 16px;
+      text-align: center;
+      display: none;
+      box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+    }
+    .bottom-chat-badge {
+      position: absolute;
+      top: 5px;
+      right: calc(50% - 22px);
+    }
+
+    /* Analytics Chart */
+    .history-chart {
+      display: flex; align-items: flex-end; gap: clamp(4px, 1vw, 12px); height: clamp(110px, 18vh, 150px);
+      margin: 14px 0 10px 0; padding-bottom: 4px; border-bottom: 1px solid var(--card-border);
+    }
+    .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
+    .chart-bar { width: 100%; max-width: 28px; background: var(--primary); border-radius: 4px 4px 0 0; }
+    .chart-label { font-size: clamp(8px, 1vw, 10px); color: var(--text-mute); }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center; z-index: 200; padding: clamp(10px, 2vw, 20px);
+    }
+    .modal-box {
+      background: var(--surface); border: 1px solid var(--card-border);
+      border-radius: 14px; padding: clamp(14px, 2.5vw, 22px); width: 100%; max-width: min(440px, 94vw);
+      max-height: 90vh; max-height: 90dvh; overflow-y: auto;
+    }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .row { display: flex; gap: 8px; align-items: center; }
+
+    .toast {
+      position: fixed; bottom: calc(var(--bottom-bar-height) + 16px + env(safe-area-inset-bottom, 0px));
+      left: 50%; transform: translateX(-50%);
+      background: #111827; color: #fff; padding: 7px 16px; border-radius: 30px;
+      font-size: 12px; border: 1px solid #374151; z-index: 210; pointer-events: none;
+      opacity: 0; transition: 0.25s; max-width: 85vw; text-align: center;
+    }
+    .toast.show { opacity: 1; }
+
+    /* ===== Meet/Zoom style additions ===== */
+    .video-tile { cursor: pointer; }
+    .video-tile.pinned { grid-column: 1 / -1; aspect-ratio: 16 / 9; }
+    .video-tile.sharing video { object-fit: contain; }
+    .call-btn.btn-share { background: #374151; }
+    .call-btn.btn-share.on { background: #059669; }
+    .call-btn.btn-hand { background: #374151; }
+    .call-btn.btn-hand.on { background: #f59e0b; }
+    .call-btn.btn-panel { background: #374151; position: relative; }
+    .call-btn.btn-panel.on { background: #2563eb; }
+    .call-btn.btn-hangup.btn-join { background: #059669; }
+    .call-dot { position: absolute; top: -2px; right: -2px; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    #callTimerText { font-family: var(--font-mono); font-size: 11px; color: #9ca3af; }
+    .call-panel { background: #0b1220; border-top: 1px solid #1f2937; color: #e5e7eb; padding: 10px 12px; }
+    .call-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 2px; border-bottom: 1px solid #1f2937; font-size: 12px; gap: 8px; }
+    .call-chat-log { max-height: 170px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; margin-bottom: 8px; font-size: 12px; }
+    .call-chat-msg { background: #111827; border-radius: 8px; padding: 5px 8px; word-break: break-word; }
+    .call-chat-msg.mine { background: #1e3a8a; align-self: flex-end; }
+    .call-chat-msg b { color: #93c5fd; font-size: 10px; display: block; }
+    .call-chat-input { flex: 1; background: #111827; border: 1px solid #374151; color: #fff; border-radius: 8px; padding: 8px 10px; font-size: 16px; min-width: 0; }
+
+    /* ===== v3: header, login, landscape, settings ===== */
+    header { box-shadow: 0 2px 18px rgba(37,99,235,.18); border-bottom: 3px solid transparent !important; border-image: linear-gradient(90deg,#2563eb,#10b981,#f59e0b) 1; }
+    .brand { font-weight: 800; letter-spacing: .3px; }
+    .brand span { background: linear-gradient(90deg,#2563eb,#10b981); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700; }
+    #authModal { background: linear-gradient(135deg,#1e3a8a 0%,#0f172a 55%,#312e81 100%) !important; backdrop-filter: none !important; overflow-y: auto; }
+    .video-tile { max-height: 70vh; }
+    .video-grid-container.has-pin .video-tile.pinned { max-height: 62vh; }
+    @media (orientation: landscape) and (max-height: 540px) {
+      .video-grid-container { max-height: calc(100vh - 150px); overflow-y: auto; }
+      .video-tile { max-height: calc(100vh - 190px); }
+      .video-tile.pinned { aspect-ratio: auto; height: calc(100vh - 190px); }
+    }
+    .set-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--card-border); font-size: 13px; }
+    .set-row select { width: auto; margin: 0; }
+
+    /* ===== v5 polish ===== */
+    .card { border-radius: 14px; box-shadow: 0 2px 14px rgba(15,23,42,.08); }
+    .btn { transition: transform .12s ease, box-shadow .2s ease; }
+    .btn:active { transform: scale(.96); }
+    .seat { transition: transform .15s ease; } .seat:active { transform: scale(.95); }
+
+    /* ===== v6: themes + final UI polish ===== */
+    [data-theme="ocean"] { --bg:#eaf4ff; --surface:#f3f9ff; --card:#ffffff; --card-border:#cfe3f7; --text:#0b2540; --text-mute:#58708a; --primary:#0284c7; --primary-hover:#0369a1; --accent:#0d9488; }
+    [data-theme="forest"] { --bg:#effaf2; --surface:#f6fdf8; --card:#ffffff; --card-border:#cdebd6; --text:#0f2a1a; --text-mute:#5a7a66; --primary:#16a34a; --primary-hover:#15803d; --accent:#0d9488; }
+    [data-theme="sunset"] { --bg:#fff4e8; --surface:#fffaf4; --card:#ffffff; --card-border:#f6d9bd; --text:#35190a; --text-mute:#8a6a52; --primary:#ea580c; --primary-hover:#c2410c; --accent:#db2777; }
+    [data-theme="midnight"] { --bg:#0b0a1a; --surface:#14122b; --card:#1b1838; --card-border:#2d2960; --text:#eeeafe; --text-mute:#9a95c9; --primary:#8b5cf6; --primary-hover:#7c3aed; --accent:#22d3ee;
+      --seat-free-bg:rgba(16,185,129,.12); --seat-free-border:#10b981; --seat-free-text:#34d399; --seat-occ-bg:rgba(239,68,68,.18); --seat-occ-border:#ef4444; --seat-occ-text:#fca5a5; }
+    input, select, textarea { border-radius: 10px; transition: border-color .2s, box-shadow .2s; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,.22); }
+    .clock-display { background: linear-gradient(90deg, var(--primary), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 800; }
+    .card-title { font-weight: 800; letter-spacing: .2px; }
+    .modal-box { border-radius: 16px; box-shadow: 0 20px 50px rgba(0,0,0,.35); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; } ::-webkit-scrollbar-thumb { background: var(--card-border); border-radius: 6px; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body>
+
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+
+  <!-- Side Drawer (All Tools & Modules) -->
+  <div class="side-drawer" id="sideDrawer">
+    <div class="drawer-header">
+      <div style="font-weight: 800; display:flex; align-items:center; gap:6px;">
+        <i data-lucide="layout"></i> Study Hub Ecosystem
+      </div>
+      <button class="btn btn-outline btn-sm" id="closeDrawerBtn"><i data-lucide="x"></i></button>
+    </div>
+
+    <div style="font-size: 10px; text-transform: uppercase; color: var(--text-mute); font-weight: 700; margin-top:4px;">Main Desk</div>
+    <button class="drawer-nav-item active" data-tab="tab-library"><i data-lucide="book-open"></i> Study Hall & Desk</button>
+    <button class="drawer-nav-item" data-tab="tab-targets"><i data-lucide="target"></i> Targets & Timers</button>
+    <button class="drawer-nav-item" data-tab="tab-chat">
+      <i data-lucide="message-square"></i> Community Chat 
+      <span id="drawerChatCountBadge" class="unread-badge" style="margin-left:auto;">0</span>
+    </button>
+    <button class="drawer-nav-item" data-tab="tab-music"><i data-lucide="music"></i> Study Radio</button>
+    <button class="drawer-nav-item" data-tab="tab-members"><i data-lucide="users"></i> Members Directory</button>
+
+    <div style="font-size: 10px; text-transform: uppercase; color: var(--text-mute); font-weight: 700; margin-top: 10px;">Productivity & Breaks</div>
+    <button class="drawer-nav-item" data-tab="tab-game"><i data-lucide="gamepad-2"></i> Multiplayer Games</button>
+    <button class="drawer-nav-item" data-tab="tab-history"><i data-lucide="bar-chart-2"></i> Analytics & Graphs</button>
+    <button class="drawer-nav-item" data-tab="tab-pdfs"><i data-lucide="file-text"></i> Vault PDF Documents</button>
+    <button class="drawer-nav-item" data-tab="tab-feedback"><i data-lucide="lightbulb"></i> Suggestions & Songs</button>
+    <button class="drawer-nav-item" data-tab="tab-profile"><i data-lucide="user"></i> Profile Settings</button>
+    <button class="drawer-nav-item" id="drawerLiveBtn" data-tab="tab-live" style="display:none; color: var(--accent);"><i data-lucide="radio"></i> Live Control Desk</button>
+    <button class="drawer-nav-item" id="drawerMonitorBtn" data-tab="tab-monitor" style="display:none; color: var(--warning);"><i data-lucide="shield"></i> Monitor Command Center</button>
+
+    <div style="margin-top: auto; padding-top: 14px; border-top: 1px solid var(--card-border);">
+      <button class="btn btn-danger" style="width:100%; justify-content:center;" id="drawerLogoutBtn"><i data-lucide="log-out"></i> Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <button class="menu-trigger" id="openDrawerBtn"><i data-lucide="menu"></i></button>
+      <div class="brand"><i data-lucide="graduation-cap" style="color:var(--primary);"></i> Study Hub <span>By Gourav</span></div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" id="pipBtn" title="Picture-in-Picture Mini View"><i data-lucide="picture-in-picture"></i> <span style="display:none;" class="desk-lbl">Mini</span></button>
+      <span id="roleBadge" class="badge">Student</span>
+      <button class="btn btn-outline btn-sm" id="settingsBtn" title="Settings"><i data-lucide="settings"></i></button>
+      <button class="btn btn-outline btn-sm" id="themeToggleBtn"><i data-lucide="sun-moon"></i></button>
+      <button class="btn btn-danger btn-sm" id="quickLogoutBtn"><i data-lucide="log-out"></i></button>
+    </div>
+  </header>
+
+  <!-- Settings -->
+  <div class="modal-overlay" id="settingsModal" style="display:none;">
+    <div class="modal-box" style="max-height:88vh; overflow-y:auto;">
+      <div class="card-title"><span>⚙️ Settings</span><button class="btn btn-sm btn-outline" id="closeSettingsBtn">✕</button></div>
+      <div class="set-row"><span>Theme</span><select id="setTheme"><option value="light">Light (default)</option><option value="dark">Dark</option><option value="auto">Auto (phone)</option><option value="ocean">Ocean Blue</option><option value="forest">Forest Green</option><option value="sunset">Sunset Orange</option><option value="midnight">Midnight Purple</option></select></div>
+      <div class="set-row"><span>Join calls with mic & camera OFF</span><input type="checkbox" id="setJoinMuted"></div>
+      <div class="set-row"><span>Mirror my front-camera preview</span><input type="checkbox" id="setMirror"></div>
+      <div class="set-row"><span>Video grid layout</span><select id="setLayout"><option value="auto">Normal</option><option value="c2">2 per row</option><option value="c3">3 per row</option><option value="c4">4 per row</option><option value="speaker">Speaker view</option></select></div>
+      <div style="background:var(--surface); border-radius:10px; padding:4px 12px; margin-bottom:6px;">
+        <div class="set-row"><span>📚 Total study (all time)</span><b id="stAll">--</b></div>
+        <div class="set-row"><span>📅 Today</span><b id="stToday">--</b></div>
+        <div class="set-row" style="border:0;"><span>🔑 Logins (total / today)</span><b id="stLogins">--</b></div>
+      </div>
+      <div class="set-row"><span>☕ Break reminder (every 50 min)</span><input type="checkbox" id="setBreak"></div>
+      <div class="set-row"><span>🎯 Daily study goal (hours, 0 = off)</span><input type="number" id="setGoal" min="0" max="16" step="0.5" style="width:70px; margin:0;"></div>
+      <div class="set-row"><span>Profile picture & exam</span><button class="btn btn-sm btn-primary" id="setDpBtn">Edit</button></div>
+      <div class="set-row"><span>Name / ID / password</span><button class="btn btn-sm btn-outline" id="setProfileBtn">Open</button></div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="profileModal" style="display:none;">
+    <div class="modal-box">
+      <div class="card-title"><span>👤 My Profile</span><button class="btn btn-sm btn-outline" id="closeProfBtn">✕</button></div>
+      <div style="text-align:center; margin-bottom:10px;"><img id="profDpPrev" style="width:96px; height:96px; border-radius:50%; object-fit:cover; background:var(--surface); border:2px solid var(--primary);"></div>
+      <input type="file" id="profDpFile" accept="image/*" style="font-size:12px;">
+      <label style="font-size:12px; font-weight:600;">Exam preparation:</label>
+      <input type="text" id="profExam" placeholder="e.g. JEE / NEET / UPSC" maxlength="40">
+      <button class="btn btn-primary" id="profSaveBtn" style="width:100%; justify-content:center; margin-top:8px;">Save Profile</button>
+      <div style="font-size:11px; color:var(--text-mute); margin-top:6px;">Photo is cropped 1:1. Saved in database; login/logout does not change it.</div>
+    </div>
+  </div>
+  <div id="c2Pop" style="display:none; position:fixed; top:calc(env(safe-area-inset-top,0px) + 62px); left:50%; transform:translateX(-50%); z-index:310; background:var(--primary); color:#fff; padding:8px 14px; border-radius:20px; font-size:12px; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,.35); max-width:88vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;"></div>
+
+  <!-- Login & Direct Sign-Up Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-box">
+      <h2 style="font-size: 18px; margin-bottom: 4px;" id="authModalTitle">Welcome to Study Hub</h2>
+      <p style="color: var(--text-mute); font-size: 12px; margin-bottom: 14px;" id="authModalSubtitle">Sign in to join the virtual study desks</p>
+
+      <div id="authAlert" style="display:none; color: var(--danger); font-size: 12px; margin-bottom: 10px;"></div>
+
+      <input type="text" id="authEmail" placeholder="Username / Email">
+      <input type="password" id="authPass" placeholder="Password">
+      <input type="text" id="authName" placeholder="Full Name (For Registration)" style="display:none;">
+
+      <button class="btn" style="width:100%; justify-content:center;" id="loginActionBtn">Sign In</button>
+
+      <div style="margin-top: 12px; display:flex; justify-content:space-between; font-size: 12px;">
+        <a href="#" id="forgotPassLink" style="color:var(--text-mute);">Forgot Password?</a>
+        <a href="#" id="authToggleLink" style="color:var(--primary); font-weight:600;">Create Account</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal-overlay" id="forgotModal" style="display:none;">
+    <div class="modal-box">
+      <h3 style="font-size: 16px; margin-bottom: 8px;">Reset Password</h3>
+      <p style="font-size: 12px; color: var(--text-mute); margin-bottom: 12px;">Enter username/email to set a new password.</p>
+      <input type="text" id="resetEmail" placeholder="Username / Registered Email">
+      <input type="password" id="resetNewPass" placeholder="Enter New Password">
+      <div class="row">
+        <button class="btn btn-success" style="flex:1; justify-content:center;" id="doResetPassBtn">Update</button>
+        <button class="btn btn-outline" id="closeResetModalBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PDF View Modal -->
+  <div class="modal-overlay" id="pdfViewModal" style="display:none;">
+    <div class="modal-box" style="max-width: 960px; width:95vw; height: 88vh; display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 8px;">
+        <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+          <i data-lucide="file-text" style="color:var(--primary); flex-shrink:0;"></i>
+          <b id="pdfViewTitle" style="font-size: 13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Document</b>
+        </div>
+        <div class="row">
+          <a id="pdfDownloadLink" class="btn btn-outline btn-sm" download><i data-lucide="download"></i> Save</a>
+          <button class="btn btn-outline btn-sm" id="closePdfViewBtn"><i data-lucide="x"></i> Close</button>
+        </div>
+      </div>
+      <iframe id="pdfViewFrame" style="width:100%; flex:1; border:0; border-radius:8px; background:#fff;"></iframe>
+    </div>
+  </div>
+
+  <main>
+    <!-- GLOBAL RADIO BROADCAST BANNER -->
+    <div class="card" id="globalRadioBanner" style="border-left: 4px solid var(--accent); display:none;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <span class="badge" style="background:var(--accent);"><i data-lucide="radio"></i> Broadcast</span>
+          <span style="font-size:12px; margin-left:6px;" id="globalRadioTitle">Broadcasting track</span>
+        </div>
+        <button class="btn btn-sm btn-outline" id="toggleGlobalAudioBtn">Mute</button>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; margin-top:8px;">
+        <iframe id="globalYtPlayer" width="160" height="90" style="border-radius:8px; background:#000; flex-shrink:0;" frameborder="0" allow="autoplay; encrypted-media"></iframe>
+        <div style="display:flex; flex-direction:column; gap:6px; align-items:flex-start;">
+          <button class="btn btn-sm btn-success" id="globalPlayPauseBtn">⏸ Pause</button>
+          <span style="font-size:10px; color:var(--text-mute);">Awaaz na aaye to ▶ dabao</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVE TASK BANNER -->
+    <div class="card" id="homeActiveTaskBanner" style="border-left: 4px solid var(--primary); display:none; background: rgba(37, 99, 235, 0.06);">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+        <div>
+          <span class="badge" style="background:var(--primary);"><i data-lucide="clock"></i> Active</span>
+          <b style="font-size:13px; margin-left:6px;" id="homeActiveTaskName">Subject</b>
+          <span style="font-family:var(--font-mono); font-size:14px; margin-left:6px; color:var(--accent);" id="homeActiveTaskTimer">00:00</span>
+        </div>
+        <div class="row">
+          <button class="btn btn-sm btn-outline" id="homePauseTaskBtn">Pause</button>
+          <button class="btn btn-sm btn-success" id="homeDoneTaskBtn">✓ Done</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 1: LIBRARY & DESK ROOM -->
+    <section id="tab-library" class="tab-content active">
+      <div class="card">
+        <div class="card-title">
+          <span>Current Desk: <b id="currentDeskLabel" style="color: var(--primary);">Unassigned</b></span>
+          <span id="liveStatusTag" class="badge" style="background:#4b5563;">Idle</span>
+        </div>
+        <div class="clock-display" id="sessionTimer">00:00:00</div>
+        <div id="sessionMeta" style="text-align:center; font-size:11px; color:var(--text-mute); margin:-4px 0 10px;"></div>
+        <div class="row" style="justify-content: center;">
+          <button class="btn btn-outline" id="pauseStudyBtn"><i data-lucide="pause"></i> Pause</button>
+          <button class="btn btn-danger" id="leaveDeskBtn"><i data-lucide="log-out"></i> Leave</button>
+        </div>
+      </div>
+
+      <!-- ============================================================ -->
+      <!-- WEBRTC MULTI-USER VIDEO ROOM (TURN RELAY + FLIP CAM)          -->
+      <!-- ============================================================ -->
+      <div class="video-call-ecosystem" id="nativeLiveCallBox">
+        <div class="video-call-topbar">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="width:10px; height:10px; border-radius:50%; background:#10b981; display:inline-block; box-shadow:0 0 8px #10b981;"></span>
+            <b style="font-size:13px;">🔴 Study Hall Multi-User Live Video Grid</b>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span id="callTimerText">00:00</span>
+            <span class="badge" id="videoPeerCountBadge" style="background:#2563eb;">1 Member</span>
+            <button class="btn btn-outline btn-sm" id="toggleCallGridBtn" style="border-color:#374151; color:#fff; padding:4px 8px; font-size:11px;">
+              <i data-lucide="eye"></i> Toggle
+            </button>
+          </div>
+        </div>
+
+        <!-- Dynamic Multi-User Video Grid -->
+        <div class="video-grid-container" id="videoGridContainer">
+          <!-- Local User's Video Tile -->
+          <div class="video-tile mine-tile" id="myVideoTile">
+            <video id="localVideoStream" autoplay playsinline muted></video>
+            <div class="video-avatar-placeholder" id="localAvatarPlaceholder" style="display:none;">
+              <div class="video-avatar-circle" id="localAvatarLetter">U</div>
+              <span style="font-size:11px;" id="localAvatarText">Camera Off</span>
+            </div>
+            <div class="video-tile-badge">
+              <span id="localTileName">You (Desk Free)</span>
+            </div>
+            <div class="video-tile-status">
+              <div class="video-status-icon" id="localMicStatusIcon"><i data-lucide="mic" style="width:12px; height:12px;"></i></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat / People panel -->
+        <div class="call-panel" id="callPanel" style="display:none;">
+          <div id="callPanelPeople" style="display:none;"></div>
+          <div id="callPanelChat" style="display:none;">
+            <div class="call-chat-log" id="callChatLog"></div>
+            <div style="display:flex; gap:6px;">
+              <input class="call-chat-input" id="callChatInput" maxlength="300" placeholder="Message everyone in call...">
+              <button class="btn btn-sm" id="callChatSend" style="background:#2563eb; color:#fff;">Send</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video & Audio In-Built Controllers -->
+        <div class="video-call-controls" id="videoControlBar">
+          <button class="call-btn btn-mute" id="toggleMicBtn" title="Mic On / Off"><i data-lucide="mic"></i></button>
+          <button class="call-btn btn-cam" id="toggleCamBtn" title="Camera On / Off"><i data-lucide="video"></i></button>
+          <button class="call-btn btn-flip" id="flipCamBtn" title="Flip Front / Back Camera"><i data-lucide="switch-camera"></i></button>
+          <button class="call-btn btn-share" id="shareScreenBtn" title="Share screen"><i data-lucide="screen-share"></i></button>
+          <button class="call-btn btn-hand" id="handBtn" title="Raise hand"><i data-lucide="hand"></i></button>
+          <button class="call-btn btn-panel" id="chatPanelBtn" title="Call chat"><i data-lucide="message-square"></i><span class="call-dot" id="chatUnread" style="display:none;">0</span></button>
+          <button class="call-btn btn-panel" id="peoplePanelBtn" title="Participants"><i data-lucide="users"></i></button>
+          <button class="call-btn btn-hangup" id="rejoinCallBtn" title="Leave / Join call"><i data-lucide="phone-off"></i> <span id="rejoinBtnText">Leave</span></button>
+        </div>
+      </div>
+
+      <!-- Desks Matrix -->
+      <div class="card">
+        <div class="card-title">
+          <span>Reading Hall Desks</span>
+          <span style="font-size: 11px; color: var(--text-mute);">Tap green desk to sit</span>
+        </div>
+
+        <!-- Head Monitor Command Desk (Gourav) -->
+        <div class="monitor-station-box" id="monitorStationBox">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <div style="font-size:20px;">👑</div>
+            <div style="font-weight:800; font-size:clamp(11px, 1.4vw, 13px); color:var(--warning);">Head Monitor Desk (Gourav)</div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px;">
+            <div id="monitorDeskStatusPill" class="badge" style="background:#374151; color:#9ca3af;">Offline</div>
+            <button class="btn btn-warning btn-sm" id="claimMonitorDeskBtn">Sit as Monitor</button>
+          </div>
+        </div>
+
+        <div class="seat-grid" id="seatMatrix"></div>
+
+        <!-- Status Legend Below Desks -->
+        <div class="seat-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--accent);"></div> Free (Khali)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--primary);"></div> Your Seat (Aapki)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--danger);"></div> Occupied (Full)</div>
+        </div>
+      </div>
+
+      <!-- Public Live Study Attendance -->
+      <div class="card">
+        <div class="card-title">
+          <span>🟢 Live Study Hall Attendance</span>
+          <span class="badge" id="publicLiveBadge" style="background:var(--accent);">0 Live</span>
+        </div>
+        <div id="publicLiveList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: TARGETS & TIMERS -->
+    <section id="tab-targets" class="tab-content">
+      <div class="card">
+        <div class="card-title">🎯 Study Targets & History</div>
+        <div class="row" style="margin-bottom: 10px; flex-wrap:wrap;">
+          <input type="text" id="targetSubject" placeholder="Subject / Chapter Name" style="margin-bottom:0; flex:2; min-width:180px;">
+          <input type="number" id="targetDuration" placeholder="Mins" style="flex:1; min-width:90px; margin-bottom:0;">
+          <button class="btn btn-success" id="addTargetBtn" style="flex-shrink:0;">+ Add</button>
+        </div>
+        <div id="targetListContainer" style="margin-top: 14px;"></div>
+
+        <div class="card-title" style="margin-top: 20px; font-size:13px;">Archived Target History</div>
+        <div id="targetHistoryContainer" style="display:flex; flex-direction:column; gap:6px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: COMMUNITY CHAT (WHATSAPP STYLE WITH LIVE NUMBER COUNTER) -->
+    <section id="tab-chat" class="tab-content">
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div style="padding:10px 14px; border-bottom:1px solid var(--card-border); display:flex; justify-content:space-between; align-items:center;">
+          <b style="font-size:13px; display:flex; align-items:center; gap:6px;">
+            <i data-lucide="message-square"></i> Community Chat
+          </b>
+          <button class="btn btn-danger btn-sm" id="adminCleanChatBtn" style="display:none;"><i data-lucide="trash-2"></i> Clear Chat</button>
+        </div>
+
+        <div class="chat-wrapper">
+          <div class="chat-box" id="chatContainer"></div>
+          <div class="chat-input-bar">
+            <input type="text" id="chatInput" placeholder="Type a message...">
+            <button class="btn btn-primary" id="sendChatBtn"><i data-lucide="send"></i></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: RADIO & MUSIC -->
+    <section id="tab-music" class="tab-content">
+      <div class="card">
+        <div class="card-title">Custom & Global Radio</div>
+        <div style="background: var(--surface); padding: 12px; border-radius: 8px; margin-bottom: 14px;">
+          <div class="row" style="flex-wrap:wrap;">
+            <input type="text" id="customYtUrl" placeholder="Paste YouTube track link..." style="margin-bottom:0; flex:1; min-width:180px;">
+            <button class="btn btn-success" id="playCustomYtBtn"><i data-lucide="play"></i> Play</button>
+          </div>
+        </div>
+
+        <div style="position: relative; width: 100%; aspect-ratio: 16/9; border-radius: 10px; overflow: hidden; background: #000; margin-bottom: 12px;">
+          <iframe id="ytPlayerFrame" width="100%" height="100%" src="https://www.youtube-nocookie.com/embed/jfKfPfyJRdk?enablejsapi=1&playsinline=1" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+        </div>
+
+        <div class="row" style="justify-content:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+          <button class="btn btn-sm btn-outline" id="radioPlayPauseBtn">⏸ Pause</button>
+          <button class="btn btn-sm btn-outline" id="radioMuteBtn">🔇 Mute</button>
+          <input type="range" id="radioVol" min="0" max="100" value="80" style="width:110px; margin:0;">
+        </div>
+
+        <div id="monitorBroadcastSection" style="display:none; background:rgba(245, 158, 11, 0.08); border:1px solid var(--warning); padding:12px; border-radius:8px;">
+          <b style="font-size:12px; color:var(--warning);">Broadcast Song to All Students:</b>
+          <div class="row" style="margin-top:6px; flex-wrap:wrap;">
+            <input type="text" id="broadcastUrl" placeholder="YouTube URL" style="margin-bottom:0; flex:1; min-width:180px;">
+            <button class="btn btn-warning" id="startBroadcastBtn">Broadcast</button>
+            <button class="btn btn-outline btn-sm" id="stopBroadcastBtn">Stop</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: MEMBERS DIRECTORY -->
+    <section id="tab-members" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>👥 Members Directory</span>
+          <span class="badge" id="onlineMemberCount">0 Active</span>
+        </div>
+        <div id="publicMembersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 6: MULTIPLAYER BREAK GAMES -->
+    <section id="tab-game" class="tab-content">
+      <div class="card" style="text-align: center;">
+        <div class="card-title">🎮 Live Multiplayer Break Games</div>
+        <div class="row" style="justify-content:center; margin-bottom:12px;">
+          <button class="btn btn-sm btn-outline active" id="gameTttTab">Tic-Tac-Toe</button>
+          <button class="btn btn-sm btn-outline" id="gameMathTab">Speed Math</button>
+        </div>
+
+        <div id="tttGameWrap">
+          <div style="font-size: 13px; margin-bottom: 8px;">Status: <b id="tttStatus" style="color:var(--primary);">Waiting for players</b></div>
+          <div class="row" style="justify-content: center; margin-bottom: 12px;">
+            <button class="btn btn-sm btn-outline" id="joinXBtn">Player X</button>
+            <button class="btn btn-sm btn-outline" id="joinOBtn">Player O</button>
+            <button class="btn btn-sm btn-danger" id="resetTttBtn">Reset</button>
+          </div>
+          <div style="display:grid; grid-template-columns: repeat(3, clamp(65px, 12vw, 80px)); gap:6px; justify-content:center;" id="tttBoard"></div>
+        </div>
+
+        <div id="mathGameWrap" style="display:none; max-width:320px; margin:auto;">
+          <div style="font-size:14px; margin-bottom:6px;">Solve: <b id="mathQuestion" style="font-size:20px; color:var(--primary);">12 + 15 = ?</b></div>
+          <input type="number" id="mathAnswer" placeholder="Answer..." style="text-align:center;">
+          <button class="btn btn-success" style="width:100%; justify-content:center;" id="submitMathBtn">Check</button>
+          <div id="mathScore" style="font-size:12px; margin-top:8px; color:var(--accent);">Sabse pehle sahi answer dene wala jeetega (+10 points)</div>
+          <div id="mathResult" style="font-size:13px; margin-top:6px; font-weight:700;"></div>
+          <button class="btn btn-sm btn-outline" id="newMathBtn" style="margin-top:8px;">New Question</button>
+        </div>
+      </div>
+      <div class="card" id="scoreCard">
+        <div class="card-title"><span>🏆 Scoreboard (sabke points)</span><button class="btn btn-sm btn-outline" id="resetScoresBtn" style="display:none;">Reset</button></div>
+        <div id="lastWinLine" style="font-size:12px; margin-bottom:8px;"></div>
+        <div id="gameScoreboard"></div>
+      </div>
+    </section>
+
+    <!-- TAB 7: ANALYTICS & LOGS (GRAPH + GRID) -->
+    <section id="tab-history" class="tab-content">
+      <div class="card">
+        <div class="card-title">📊 Analytics & Lifetime Focus</div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 14px;">
+          <div style="background:var(--surface); border:1px solid var(--card-border); padding:10px; border-radius:8px; text-align:center;">
+            <div style="font-size:11px; color:var(--text-mute);">Today's Focus</div>
+            <div style="font-size:clamp(15px, 2.5vw, 18px); font-weight:700; color:var(--accent);" id="todayLogStat">0h 0m</div>
+          </div>
+          <div style="background:var(--surface); border:1px solid var(--card-border); padding:10px; border-radius:8px; text-align:center;">
+            <div style="font-size:11px; color:var(--text-mute);">Lifetime Hours</div>
+            <div style="font-size:clamp(15px, 2.5vw, 18px); font-weight:700; color:var(--primary);" id="totalLogStat">0h 0m</div>
+          </div>
+        </div>
+
+        <div style="font-size:12px; font-weight:700; margin-top:10px;">Recent Study Trends</div>
+        <div class="history-chart" id="analyticsBarChart"></div>
+
+        <div class="card-title" style="font-size: 13px; margin-top:16px;">Daily Records</div>
+        <div id="historyLogContainer"></div>
+      </div>
+    </section>
+
+    <!-- TAB 8: VAULT PDF DOCUMENTS (INDEXEDDB FOR HEAVY FILES) -->
+    <section id="tab-pdfs" class="tab-content">
+      <div class="card">
+        <div class="card-title">
+          <span>📑 Vault PDF Documents (Permanent & High Speed)</span>
+          <button class="btn btn-sm btn-primary" id="uploadPdfTrigger"><i data-lucide="upload"></i> Upload PDF</button>
+        </div>
+        
+        <input type="file" id="pdfFileInput" accept="application/pdf" multiple style="display:none;">
+        <div id="pdfUploadStatus" style="display:none; font-size:12px; color:var(--primary); font-weight:600; margin-bottom:10px;">
+          ⏳ Uploading & storing document...
+        </div>
+
+        <div id="pdfShelfContainer" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 9: STUDENT SUGGESTIONS -->
+    <section id="tab-feedback" class="tab-content">
+      <div class="card">
+        <div class="card-title">💡 Student Suggestion Box</div>
+        <select id="suggestType">
+          <option value="Feature Request">Feature Request</option>
+          <option value="Song Request">Song Request</option>
+          <option value="Feedback">Feedback</option>
+        </select>
+        <textarea id="suggestMessage" rows="3" placeholder="Write your suggestion or study song link..."></textarea>
+        <button class="btn btn-primary" id="submitSuggestBtn">Submit</button>
+      </div>
+    </section>
+
+    <!-- TAB 10: PROFILE -->
+    <section id="tab-profile" class="tab-content">
+      <div class="card">
+        <div class="card-title">Profile Settings</div>
+        <label style="font-size: 12px; font-weight: 600;">Display Name:</label>
+        <input type="text" id="profName">
+        <label style="font-size: 12px; font-weight: 600;">Registered Email / ID:</label>
+        <input type="text" id="profEmail" readonly style="opacity: 0.7;">
+        <label style="font-size: 12px; font-weight: 600;">Change Password:</label>
+        <input type="password" id="profPass">
+        <label style="font-size: 12px; font-weight: 600;">Target Goal / Exam:</label>
+        <input type="text" id="profGoal" placeholder="e.g. BPSC / UPSC / SSC">
+        <button class="btn btn-primary" id="saveProfileBtn">Save Profile</button>
+      </div>
+    </section>
+
+    <!-- TAB 11: ADMIN LIVE CONTROL -->
+    <section id="tab-live" class="tab-content">
+      <div class="card" style="border-left: 4px solid var(--accent);">
+        <div class="card-title">
+          <span>🟢 Live Desks Control</span>
+          <span class="badge" id="liveCountBadge" style="background:var(--accent);">0 Live</span>
+        </div>
+        <div class="row" style="flex-wrap:wrap; margin-bottom:12px;">
+          <button class="btn btn-outline btn-sm" id="liveMsgAllBtn"><i data-lucide="message-circle"></i> Message All</button>
+          <button class="btn btn-outline btn-sm" id="liveMicAllBtn"><i data-lucide="mic-off"></i> Mute All</button>
+        </div>
+        <div id="liveMembersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+
+    <!-- TAB 12: ADMIN MONITOR COMMAND CENTER -->
+    <section id="tab-monitor" class="tab-content">
+      <div class="card" style="border-left: 4px solid var(--warning);">
+        <div class="card-title">
+          <span>🛡️ Monitor Command Center</span>
+          <span class="badge admin">Super-Admin</span>
+        </div>
+
+        <!-- Video Room Broadcast Notice by Admin -->
+        <div style="background:var(--surface); border:1.5px solid var(--primary); padding:14px; border-radius:10px; margin-bottom:14px;">
+          <b style="font-size:13px; color:var(--primary); display:block; margin-bottom:6px;">📢 Video Hall Notice Broadcast:</b>
+          <div class="row">
+            <input type="text" id="adminNoticeInput" placeholder="Write notice for all studying students..." style="margin-bottom:0;">
+            <button class="btn btn-success btn-sm" id="broadcastNoticeBtn">Send Notice</button>
+          </div>
+          <small style="font-size:10px; color:var(--text-mute);">Yeh notice sabhi students ke live screen par display hoga.</small>
+        </div>
+
+        <h4 style="font-size: 13px; margin: 12px 0 8px;">Registered Members & Credentials</h4>
+        <div id="acceptedMembersList" style="display:flex; flex-direction:column; gap:8px;"></div>
+
+        <h4 style="font-size: 13px; margin: 16px 0 8px;">Received Suggestions</h4>
+        <div id="receivedSuggestionsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Responsive 5 Primary Buttons Bottom Navigation Bar with Dynamic Number Badge -->
+  <nav class="bottom-nav">
+    <button class="active" data-tab="tab-library"><i data-lucide="book-open"></i><span>Library</span></button>
+    <button data-tab="tab-targets"><i data-lucide="target"></i><span>Targets</span></button>
+    <button data-tab="tab-chat" id="bottomChatBtn">
+      <i data-lucide="message-square"></i>
+      <span>Chat</span>
+      <span id="bottomChatCountBadge" class="unread-badge bottom-chat-badge">0</span>
+    </button>
+    <button data-tab="tab-music"><i data-lucide="music"></i><span>Radio</span></button>
+    <button data-tab="tab-members" id="bottomMemberBtn"><i data-lucide="users"></i><span>Members</span></button>
+    <button id="quickLiveBtn" data-tab="tab-live" style="display:none;"><i data-lucide="radio"></i><span>Live</span></button>
+    <button id="quickMonitorBtn" data-tab="tab-monitor" style="display:none;"><i data-lucide="shield"></i><span>Admin</span></button>
+  </nav>
+
+  <div id="toast" class="toast">Notice</div>
+
+  <!-- Picture-in-Picture Mini View -->
+  <div id="winPopup" style="display:none; position:fixed; top:calc(env(safe-area-inset-top,0px) + 70px); left:50%; transform:translateX(-50%); z-index:300; background:linear-gradient(135deg,#f59e0b,#ef4444); color:#fff; padding:12px 18px; border-radius:14px; font-weight:800; font-size:14px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.4); max-width:90vw;"></div>
+  <div id="pipFloat" style="display:none; position:fixed; right:10px; bottom:calc(var(--bottom-bar-height) + 14px + env(safe-area-inset-bottom,0px)); width:min(48vw,220px); aspect-ratio:16/9; z-index:90; border-radius:10px; overflow:hidden; border:2px solid var(--primary); box-shadow:0 8px 24px rgba(0,0,0,.45); background:#000; touch-action:none;">
+    <canvas id="pipCanvas" width="640" height="360" style="width:100%; height:100%; display:block;"></canvas>
+    <button id="pipFloatClose" style="position:absolute; top:3px; right:3px; width:22px; height:22px; border-radius:50%; border:0; background:rgba(0,0,0,.65); color:#fff; font-size:12px;">✕</button>
+  </div>
+  <video id="pipVideo" autoplay playsinline muted style="position:fixed; bottom:0; left:0; width:2px; height:2px; opacity:0; pointer-events:none;"></video>
+
+  <script>
+    lucide.createIcons();
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCUTzeUlLBomaqcM-VtkdjeRsqma7sDpVk",
+      authDomain: "study-hub-1fae3.firebaseapp.com",
+      databaseURL: "https://study-hub-1fae3-default-rtdb.firebaseio.com",
+      projectId: "study-hub-1fae3",
+      storageBucket: "study-hub-1fae3.firebasestorage.app",
+      messagingSenderId: "804818789246",
+      appId: "1:804818789246:web:17495ac85aa93965e6492f"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const rtdb = firebase.database();
+
+    const OWNER_EMAIL = "admin";
+    const OWNER_PASS = "admin@";
+    const TOTAL_DESKS = 24;
+
+    let state = {
+      currentUser: null,
+      isOwner: false,
+      mySeat: null,
+      studySince: 0,
+      isPaused: false,
+      dailyLogs: {},
+      users: [],
+      roomOccupants: {},
+      suggestions: [],
+      targets: [],
+      targetHistory: [],
+      broadcast: null,
+      ttt: { board: Array(9).fill(""), turn: "X", pX: "", pO: "" },
+      chat: [],
+      lastReadChatCount: 0,
+      kicks: {},
+      commands: {},
+      seatedAt: 0
+    };
+
+    let activeRunningTargetIdx = null;
+    let seenCmdId = 0;
+    let cloudReady = false;
+    let dbInstance = null;
+
+    // ============================================================
+    // WEBRTC VIDEO ENGINE (STUN + RELAY TURN + FRONT/BACK FLIP)
+    // ============================================================
+    const rtcConfig = {
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
+        {
+          urls: [
+            "turn:openrelay.metered.ca:80",
+            "turn:openrelay.metered.ca:443",
+            "turn:openrelay.metered.ca:443?transport=tcp"
+          ],
+          username: "openrelayproject",
+          credential: "openrelayproject"
+        }
+      ]
+    };
+
+    let localMediaStream = null;
+    let myPeerId = null;
+    let peerConnections = {};      // remotePeerId -> RTCPeerConnection
+    let remoteVideoStreams = {};   // remotePeerId -> MediaStream
+    let isMicMuted = false;
+    let isCamOff = false;
+    let currentFacingMode = "user"; // "user" (Front) or "environment" (Back)
+
+    let inCall = false, joining = false, isHandUp = false, isSharing = false;
+    let screenStream = null, pinnedId = null, callStart = 0, callTimer = null;
+    let roomListeners = [], peerInfo = {}, activePanel = null, unreadChat = 0, lastPushSig = "";
+    const $id = (x) => document.getElementById(x);
+    const ROOM = "ecosystem/video_room";
+
+    async function initNativeWebRTC() {
+      if (inCall || joining) return;
+      joining = true;
+      try {
+        for (let i = 0; i < 40 && !cloudReady; i++) await new Promise(r => setTimeout(r, 250));
+        if (!cloudReady) { toast("Server connect nahi hua, internet check karo"); return; }
+        myPeerId = "peer_" + Date.now() + "_" + Math.random().toString(36).substring(2, 7);
+        isHandUp = false;
+        if (settings.joinMuted) { isMicMuted = true; isCamOff = true; }
+        await startMediaStream(currentFacingMode);
+        inCall = true;
+        callStart = Date.now();
+        applyTrackFlags();
+        startCallTimer();
+        joinVideoRoomSignaling();
+        attachCallChat();
+        updateLocalTileUI();
+        updateCallUI();
+        autoSeat();
+        ensurePipStream();
+        toast("Call joined");
+      } finally { joining = false; }
+    }
+
+    async function startMediaStream(facing) {
+      if (localMediaStream) {
+        localMediaStream.getTracks().forEach(t => t.stop());
+      }
+
+      try {
+        localMediaStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: facing },
+            width: { ideal: 640 },
+            height: { ideal: 480 }
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true
+          }
+        });
+      } catch (e) {
+        console.warn("Direct ideal facingMode unavailable, fallback to basic constraints:", e);
+        try {
+          localMediaStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true
+          });
+        } catch(err) {
+          console.warn("Camera failed, fallback to audio-only stream:", err);
+          try {
+            localMediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            isCamOff = true;
+          } catch(audioErr) {
+            console.error("Audio/Video access denied:", audioErr);
+            localMediaStream = new MediaStream();
+          }
+        }
+      }
+
+      const localVideo = document.getElementById("localVideoStream");
+      if (localVideo) {
+        localVideo.srcObject = localMediaStream;
+        localVideo.setAttribute("playsinline", "true");
+        localVideo.setAttribute("autoplay", "true");
+        localVideo.muted = true;
+        localVideo.play().catch(e => console.warn("Local play warning:", e));
+      }
+
+      // If replacing tracks during live active call
+      const newVideoTrack = localMediaStream.getVideoTracks()[0];
+      const newAudioTrack = localMediaStream.getAudioTracks()[0];
+
+      for (const pid in peerConnections) {
+        const pc = peerConnections[pid];
+        const senders = pc.getSenders();
+
+        if (newVideoTrack) {
+          const vSender = senders.find(s => s.track && s.track.kind === "video");
+          if (vSender) vSender.replaceTrack(newVideoTrack);
+        }
+        if (newAudioTrack) {
+          const aSender = senders.find(s => s.track && s.track.kind === "audio");
+          if (aSender) aSender.replaceTrack(newAudioTrack);
+        }
+      }
+
+      updateLocalTileUI();
+    }
+
+    function myInfo() {
+      return {
+        peerId: myPeerId,
+        userName: state.currentUser ? state.currentUser.name : "Student",
+        seat: state.mySeat || "None",
+        email: state.currentUser ? state.currentUser.email : "guest",
+        joinedAt: callStart,
+        mic: !isMicMuted, cam: !isCamOff, hand: isHandUp, sharing: isSharing
+      };
+    }
+    function pushMyState() {
+      if (!inCall || !cloudReady || !myPeerId) return;
+      const info = myInfo();
+      const sig = JSON.stringify([info.mic, info.cam, info.hand, info.sharing, info.seat, info.userName]);
+      if (sig === lastPushSig) return;
+      lastPushSig = sig;
+      rtdb.ref(`${ROOM}/peers/${myPeerId}`).update(info);
+    }
+    function applyTrackFlags() {
+      if (!localMediaStream) return;
+      localMediaStream.getAudioTracks().forEach(t => t.enabled = !isMicMuted);
+      localMediaStream.getVideoTracks().forEach(t => t.enabled = !isCamOff);
+    }
+    function onRoom(ref, ev, fn) { ref.on(ev, fn); roomListeners.push([ref, ev, fn]); }
+    function videoSender(pc) {
+      const t = pc.getTransceivers().find(x => x.receiver && x.receiver.track && x.receiver.track.kind === "video");
+      return t ? t.sender : null;
+    }
+    function needCall() { if (!inCall) { toast("Pehle call join karo"); return false; } return true; }
+
+    function joinVideoRoomSignaling() {
+      const myPeerRef = rtdb.ref(`${ROOM}/peers/${myPeerId}`);
+      lastPushSig = "";
+
+      // (re)register presence, also after network reconnects
+      onRoom(rtdb.ref(".info/connected"), "value", snap => {
+        if (snap.val() === true && inCall) {
+          myPeerRef.set(myInfo());
+          myPeerRef.onDisconnect().remove();
+          rtdb.ref(`${ROOM}/signals/${myPeerId}`).onDisconnect().remove();
+        }
+      });
+
+      onRoom(rtdb.ref(`${ROOM}/peers`), "value", snapshot => {
+        const peers = snapshot.val() || {};
+        const prev = peerInfo;
+        peerInfo = peers;
+        $id("videoPeerCountBadge").textContent = `${Object.keys(peers).length} Live`;
+
+        for (const pid in peers) {
+          if (pid === myPeerId) continue;
+          const p = peers[pid], o = prev[pid];
+          if (!o && Object.keys(prev).length) toast(`${p.userName} joined the call`);
+          if (p.hand && !(o && o.hand)) toast(`✋ ${p.userName} ne hand raise kiya`);
+          if (p.sharing && !(o && o.sharing)) { setPinned(pid); toast(`🖥 ${p.userName} screen share kar raha hai`); }
+          if (!p.sharing && o && o.sharing && pinnedId === pid) setPinned(null);
+          if (!peerConnections[pid]) initiatePeerCall(pid, p);
+          renderTileMeta(pid);
+        }
+        for (const pid in prev) {
+          if (pid !== myPeerId && !peers[pid] && inCall) toast(`${prev[pid].userName} left the call`);
+        }
+        for (const existingPid in peerConnections) {
+          if (!peers[existingPid]) removeRemoteVideoTile(existingPid);
+        }
+        renderPeopleList();
+      });
+
+      const sigRef = rtdb.ref(`${ROOM}/signals/${myPeerId}`);
+      onRoom(sigRef, "child_added", snap => handleSignal(snap.key, snap.val()));
+      onRoom(sigRef, "child_changed", snap => handleSignal(snap.key, snap.val()));
+    }
+
+    function handleSignal(from, data) {
+      if (!data || !inCall) return;
+      const pc = peerConnections[from] || createPeerConnection(from);
+      pc._chain = (pc._chain || Promise.resolve()).then(async () => {
+        try {
+          if (data.offer && !pc._gotOffer) {
+            pc._gotOffer = true;
+            await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await pc.createAnswer();
+            await pc.setLocalDescription(answer);
+            rtdb.ref(`${ROOM}/signals/${from}/${myPeerId}/answer`).set({ type: answer.type, sdp: answer.sdp });
+          } else if (data.answer && !pc._gotAnswer && pc.signalingState === "have-local-offer") {
+            pc._gotAnswer = true;
+            await pc.setRemoteDescription(new RTCSessionDescription(data.answer));
+          }
+          if (data.candidates && pc.remoteDescription) {
+            for (const [k, c] of Object.entries(data.candidates)) {
+              if (pc._seen.has(k)) continue;
+              pc._seen.add(k);
+              try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (e) {}
+            }
+          }
+        } catch (err) { console.warn("Signal warning:", err); }
+      });
+    }
+
+    function createPeerConnection(remotePeerId) {
+      const pc = new RTCPeerConnection(rtcConfig);
+      pc._seen = new Set();
+      peerConnections[remotePeerId] = pc;
+
+      if (localMediaStream) {
+        localMediaStream.getTracks().forEach(track => pc.addTrack(track, localMediaStream));
+        // audio-only users still get a video slot so screen share can work later
+        if (!localMediaStream.getVideoTracks().length) pc.addTransceiver("video", { direction: "sendrecv" });
+      }
+
+      pc.ontrack = (event) => {
+        let s = event.streams && event.streams[0];
+        if (!s) { s = remoteVideoStreams[remotePeerId] || new MediaStream(); s.addTrack(event.track); }
+        remoteVideoStreams[remotePeerId] = s;
+        renderRemoteVideoTile(remotePeerId, s);
+      };
+
+      pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          rtdb.ref(`${ROOM}/signals/${remotePeerId}/${myPeerId}/candidates`).push(event.candidate.toJSON());
+        }
+      };
+
+      pc.oniceconnectionstatechange = () => {
+        const st = pc.iceConnectionState;
+        if (st === "failed" || st === "closed") {
+          if (peerConnections[remotePeerId] === pc) removeRemoteVideoTile(remotePeerId);
+        } else if (st === "disconnected") {
+          setTimeout(() => {
+            if (peerConnections[remotePeerId] === pc && pc.iceConnectionState !== "connected" && pc.iceConnectionState !== "completed") {
+              removeRemoteVideoTile(remotePeerId);
+              pushMyState();
+              rtdb.ref(`${ROOM}/peers/${myPeerId}/ping`).set(Date.now()); // triggers reconnect pass for everyone
+            }
+          }, 8000);
+        }
+      };
+      return pc;
+    }
+
+    async function initiatePeerCall(remotePeerId, remotePeerInfo) {
+      if (myPeerId > remotePeerId && !peerConnections[remotePeerId]) {
+        const pc = createPeerConnection(remotePeerId);
+        try {
+          const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+          await pc.setLocalDescription(offer);
+          rtdb.ref(`${ROOM}/signals/${remotePeerId}/${myPeerId}/offer`).set({ type: offer.type, sdp: offer.sdp });
+        } catch (err) { console.error("Offer creation error:", err); }
+      }
+    }
+
+    function renderRemoteVideoTile(pid, stream) {
+      let tile = $id(`tile_${pid}`);
+      if (!tile) {
+        tile = document.createElement("div");
+        tile.className = "video-tile";
+        tile.id = `tile_${pid}`;
+        tile.innerHTML =
+          '<video autoplay playsinline></video>' +
+          '<div class="video-avatar-placeholder" style="display:none;"><div class="video-avatar-circle">?</div><span style="font-size:11px;">Camera Off</span></div>' +
+          '<div class="video-tile-badge"><span>Connecting...</span></div>' +
+          '<div class="video-tile-status"><div class="video-status-icon"></div></div>';
+        tile.querySelector("video").id = `remote_video_${pid}`;
+        tile.onclick = () => setPinned(pinnedId === pid ? null : pid);
+        $id("videoGridContainer").appendChild(tile);
+      }
+      const v = $id(`remote_video_${pid}`);
+      if (v && v.srcObject !== stream) {
+        v.srcObject = stream;
+        v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+      }
+      renderTileMeta(pid);
+    }
+
+    function renderTileMeta(pid) {
+      const tile = pid === "me" ? $id("myVideoTile") : $id(`tile_${pid}`);
+      const info = peerInfo[pid];
+      if (!tile || pid === "me" || !info) return;
+      const seat = info.seat && info.seat !== "None" ? info.seat : "Desk Free";
+      tile.querySelector(".video-tile-badge span").textContent = `${info.hand ? "✋ " : ""}${info.userName || "Student"} (${seat})`;
+      const ph = tile.querySelector(".video-avatar-placeholder");
+      ph.style.display = info.cam === false && !info.sharing ? "flex" : "none";
+      ph.querySelector(".video-avatar-circle").textContent = (info.userName || "?").charAt(0).toUpperCase();
+      { const dk = info.email ? emailKey(info.email) : null, dp = dk && C2.profiles[dk] && C2.profiles[dk].dp, ac = ph.querySelector(".video-avatar-circle"); ac.style.backgroundImage = dp ? `url(${dp})` : ""; ac.style.backgroundSize = "cover"; if (dp) ac.textContent = ""; }
+      tile.querySelector(".video-status-icon").innerHTML = info.mic === false
+        ? '<i data-lucide="mic-off" style="width:12px;height:12px;color:#ef4444;"></i>'
+        : '<i data-lucide="mic" style="width:12px;height:12px;color:#10b981;"></i>';
+      tile.classList.toggle("sharing", !!info.sharing);
+      lucide.createIcons();
+    }
+
+    function setPinned(pid) {
+      pinnedId = pid;
+      $id("videoGridContainer").classList.toggle("has-pin", !!pid);
+      document.querySelectorAll("#videoGridContainer .video-tile").forEach(t => {
+        const id = t.id === "myVideoTile" ? "me" : t.id.replace("tile_", "");
+        t.classList.toggle("pinned", id === pid);
+      });
+    }
+    $id("myVideoTile").onclick = () => setPinned(pinnedId === "me" ? null : "me");
+
+    function removeRemoteVideoTile(pid) {
+      const pc = peerConnections[pid];
+      if (pc) {
+        try { pc.close(); } catch (e) {}
+        delete peerConnections[pid];
+        if (myPeerId) {
+          rtdb.ref(`${ROOM}/signals/${myPeerId}/${pid}`).remove();
+          rtdb.ref(`${ROOM}/signals/${pid}/${myPeerId}`).remove();
+        }
+      }
+      delete remoteVideoStreams[pid];
+      if (pinnedId === pid) setPinned(null);
+      const tile = $id(`tile_${pid}`);
+      if (tile) tile.remove();
+    }
+
+    // ---------- Local controls ----------
+    function setBtn(id, cls, icon, label) {
+      const b = $id(id);
+      const key = cls + icon + (label || "");
+      if (b.dataset.k === key) return;
+      b.dataset.k = key;
+      b.className = cls;
+      b.innerHTML = `<i data-lucide="${icon}"></i>` + (label ? ` <span id="rejoinBtnText">${label}</span>` : "");
+    }
+
+    function updateLocalTileUI() {
+      const myName = state.currentUser ? state.currentUser.name : "You";
+      const seat = state.mySeat ? `(${state.mySeat})` : "(Unseated)";
+      $id("localTileName").textContent = `${isHandUp ? "✋ " : ""}${myName} ${seat}`;
+      $id("localAvatarLetter").textContent = myName.charAt(0).toUpperCase();
+      if (state.currentUser && typeof C2 !== "undefined") { const dp = (C2.profiles[emailKey(state.currentUser.email)] || {}).dp, ac = $id("localAvatarLetter"); ac.style.backgroundImage = dp ? `url(${dp})` : ""; ac.style.backgroundSize = "cover"; if (dp) ac.textContent = ""; }
+      const ph = $id("localAvatarPlaceholder");
+      ph.style.display = (!inCall || isCamOff) && !isSharing ? "flex" : "none";
+      $id("localAvatarText").textContent = inCall ? "Camera Off" : "Not in call";
+      $id("myVideoTile").classList.toggle("sharing", isSharing);
+      $id("localMicStatusIcon").innerHTML = isMicMuted
+        ? '<i data-lucide="mic-off" style="width:12px;height:12px;color:#ef4444;"></i>'
+        : '<i data-lucide="mic" style="width:12px;height:12px;color:#10b981;"></i>';
+      setBtn("toggleMicBtn", isMicMuted ? "call-btn btn-mute off" : "call-btn btn-mute", isMicMuted ? "mic-off" : "mic");
+      setBtn("toggleCamBtn", isCamOff ? "call-btn btn-cam off" : "call-btn btn-cam", isCamOff ? "video-off" : "video");
+      setBtn("shareScreenBtn", isSharing ? "call-btn btn-share on" : "call-btn btn-share", isSharing ? "monitor-off" : "screen-share");
+      setBtn("handBtn", isHandUp ? "call-btn btn-hand on" : "call-btn btn-hand", "hand");
+      lucide.createIcons();
+      pushMyState();
+    }
+
+    function updateCallUI() {
+      if (inCall) setBtn("rejoinCallBtn", "call-btn btn-hangup", "phone-off", "Leave");
+      else setBtn("rejoinCallBtn", "call-btn btn-hangup btn-join", "phone-call", "Join call");
+      if (!inCall) $id("videoPeerCountBadge").textContent = "Not in call";
+      lucide.createIcons();
+    }
+
+    $id("toggleMicBtn").onclick = () => {
+      if (!needCall()) return;
+      isMicMuted = !isMicMuted; applyTrackFlags(); updateLocalTileUI();
+      toast(isMicMuted ? "Microphone Muted" : "Microphone Live");
+    };
+    $id("toggleCamBtn").onclick = () => {
+      if (!needCall()) return;
+      isCamOff = !isCamOff; applyTrackFlags(); updateLocalTileUI();
+      toast(isCamOff ? "Camera Off" : "Camera Live");
+    };
+    $id("flipCamBtn").onclick = async () => {
+      if (!needCall()) return;
+      if (isSharing) return toast("Pehle screen share band karo");
+      currentFacingMode = currentFacingMode === "user" ? "environment" : "user";
+      toast(currentFacingMode === "user" ? "Switched to Front Camera" : "Switched to Back Camera");
+      await startMediaStream(currentFacingMode);
+      applyTrackFlags();
+    };
+    $id("handBtn").onclick = () => {
+      if (!needCall()) return;
+      isHandUp = !isHandUp; updateLocalTileUI();
+      toast(isHandUp ? "✋ Hand raised" : "Hand lowered");
+    };
+
+    // Screen share (works on desktop browsers & Chrome; most Android WebViews don't support it)
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) $id("shareScreenBtn").style.display = "none";
+    $id("shareScreenBtn").onclick = async () => {
+      if (!needCall()) return;
+      if (isSharing) return stopScreenShare();
+      try {
+        screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      } catch (e) { return; }
+      const track = screenStream.getVideoTracks()[0];
+      track.onended = () => stopScreenShare();
+      for (const pid in peerConnections) {
+        const s = videoSender(peerConnections[pid]);
+        if (s) s.replaceTrack(track).catch(() => {});
+      }
+      isSharing = true;
+      $id("localVideoStream").srcObject = screenStream;
+      setPinned("me");
+      updateLocalTileUI();
+      toast("Screen sharing started");
+    };
+    function stopScreenShare() {
+      if (!isSharing) return;
+      isSharing = false;
+      if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
+      const cam = localMediaStream && localMediaStream.getVideoTracks()[0];
+      for (const pid in peerConnections) {
+        const s = videoSender(peerConnections[pid]);
+        if (s) s.replaceTrack(cam || null).catch(() => {});
+      }
+      if (localMediaStream) $id("localVideoStream").srcObject = localMediaStream;
+      if (pinnedId === "me") setPinned(null);
+      updateLocalTileUI();
+      toast("Screen sharing stopped");
+    }
+
+    // ---------- Leave / Join ----------
+    function leaveCall() {
+      if (!inCall) return;
+      inCall = false;
+      stopScreenShare();
+      const wasAlone = Object.keys(peerInfo).length <= 1;
+      roomListeners.forEach(([r, e, f]) => r.off(e, f));
+      roomListeners = [];
+      Object.keys(peerConnections).forEach(removeRemoteVideoTile);
+      if (localMediaStream) localMediaStream.getTracks().forEach(t => t.stop());
+      localMediaStream = null;
+      $id("localVideoStream").srcObject = null;
+      const me = myPeerId;
+      rtdb.ref(`${ROOM}/peers/${me}`).remove();
+      rtdb.ref(`${ROOM}/signals/${me}`).remove();
+      if (wasAlone) rtdb.ref(`${ROOM}/chat`).remove();
+      clearInterval(callTimer);
+      $id("callTimerText").textContent = "00:00";
+      isHandUp = false; peerInfo = {}; lastPushSig = "";
+      setPinned(null);
+      showPanel(null);
+      $id("callChatLog").innerHTML = "";
+      renderPeopleList();
+      updateLocalTileUI();
+      updateCallUI();
+      toast("Call chhod di");
+    }
+    $id("rejoinCallBtn").onclick = () => { inCall ? leaveCall() : initNativeWebRTC(); };
+
+    function startCallTimer() {
+      clearInterval(callTimer);
+      callTimer = setInterval(() => {
+        const s = Math.floor((Date.now() - callStart) / 1000);
+        $id("callTimerText").textContent = String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+      }, 1000);
+    }
+
+    // ---------- Panels: chat + participants ----------
+    function showPanel(which) {
+      activePanel = activePanel === which ? null : which;
+      $id("callPanel").style.display = activePanel ? "block" : "none";
+      $id("callPanelChat").style.display = activePanel === "chat" ? "block" : "none";
+      $id("callPanelPeople").style.display = activePanel === "people" ? "block" : "none";
+      $id("chatPanelBtn").classList.toggle("on", activePanel === "chat");
+      $id("peoplePanelBtn").classList.toggle("on", activePanel === "people");
+      if (activePanel === "chat") { unreadChat = 0; $id("chatUnread").style.display = "none"; const l = $id("callChatLog"); l.scrollTop = l.scrollHeight; }
+      if (activePanel === "people") renderPeopleList();
+    }
+    $id("chatPanelBtn").onclick = () => { if (needCall()) showPanel("chat"); };
+    $id("peoplePanelBtn").onclick = () => { if (needCall()) showPanel("people"); };
+
+    function renderPeopleList() {
+      const box = $id("callPanelPeople");
+      box.innerHTML = "";
+      Object.values(peerInfo).sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0)).forEach(p => {
+        const row = document.createElement("div");
+        row.className = "call-row";
+        const name = document.createElement("span");
+        name.textContent = p.userName + (p.peerId === myPeerId ? " (You)" : "");
+        const st = document.createElement("span");
+        st.textContent = (p.hand ? "✋ " : "") + (p.sharing ? "🖥 " : "") + (p.mic === false ? "🔇 " : "🎤 ") + (p.cam === false ? "📷✖" : "📷");
+        row.appendChild(name); row.appendChild(st); box.appendChild(row);
+      });
+    }
+
+    function attachCallChat() {
+      const q = rtdb.ref(`${ROOM}/chat`).limitToLast(40);
+      onRoom(rtdb.ref(`${ROOM}/chat`), "value", s2 => { if (!s2.exists()) $id("callChatLog").innerHTML = ""; });
+      onRoom(q, "child_added", snap => {
+        const m = snap.val(); if (!m) return;
+        const mine = m.peerId === myPeerId;
+        const el = document.createElement("div");
+        el.className = "call-chat-msg" + (mine ? " mine" : "");
+        const who = document.createElement("b"); who.textContent = mine ? "You" : m.name;
+        const tx = document.createElement("span"); tx.textContent = m.text;
+        el.appendChild(who); el.appendChild(tx);
+        const log = $id("callChatLog"); log.appendChild(el); log.scrollTop = log.scrollHeight;
+        if (!mine && m.time >= callStart && activePanel !== "chat") {
+          unreadChat++;
+          const d = $id("chatUnread"); d.textContent = unreadChat > 9 ? "9+" : unreadChat; d.style.display = "flex";
+        }
+      });
+    }
+    function sendCallChat() {
+      const inp = $id("callChatInput");
+      const text = inp.value.trim();
+      if (!text || !inCall) return;
+      rtdb.ref(`${ROOM}/chat`).push({ name: state.currentUser ? state.currentUser.name : "Student", peerId: myPeerId, text, time: Date.now() });
+      inp.value = "";
+    }
+    $id("callChatSend").onclick = sendCallChat;
+    $id("callChatInput").addEventListener("keydown", e => { if (e.key === "Enter") sendCallChat(); });
+    window.addEventListener("pagehide", () => { if (inCall && myPeerId) rtdb.ref(`${ROOM}/peers/${myPeerId}`).remove(); });
+
+    updateCallUI();
+
+    // Toggle Grid Size View
+    document.getElementById("toggleCallGridBtn").onclick = () => {
+      const container = document.getElementById("videoGridContainer");
+      const isHidden = container.style.display === "none";
+      container.style.display = isHidden ? "grid" : "none";
+    };
+
+    // Broadcast Notice by Admin
+    document.getElementById("broadcastNoticeBtn").onclick = () => {
+      if (!state.isOwner) return;
+      const text = document.getElementById("adminNoticeInput").value.trim();
+      if (!text) return alert("Notice text required.");
+      cloudUpdate({ broadcastNotice: { text, time: Date.now() } });
+      document.getElementById("adminNoticeInput").value = "";
+      toast("Notice broadcasted to all live members!");
+    };
+
+    // Listen to admin notices
+    rtdb.ref("ecosystem/broadcastNotice").on("value", snap => {
+      const notice = snap.val();
+      if (notice && notice.time && (Date.now() - notice.time) < 15000) {
+        toast(`📢 Announcement: ${notice.text}`);
+      }
+    });
+
+    // ==========================================
+    // INDEXEDDB SETUP FOR HEAVY PDF VAULT
+    // ==========================================
+    function initPdfDatabase() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open("StudyHub_PdfVault_DB", 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains("vault_pdfs")) {
+            db.createObjectStore("vault_pdfs", { keyPath: "id" });
+          }
+        };
+        req.onsuccess = (e) => {
+          dbInstance = e.target.result;
+          resolve(dbInstance);
+        };
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    function storePdfToVault(fileObj) {
+      return new Promise((resolve, reject) => {
+        if (!dbInstance) return reject("Database not open");
+        const tx = dbInstance.transaction(["vault_pdfs"], "readwrite");
+        const store = tx.objectStore("vault_pdfs");
+        const record = {
+          id: Date.now() + "_" + Math.random().toString(36).substring(2, 8),
+          name: fileObj.name,
+          size: fileObj.size,
+          type: fileObj.type || "application/pdf",
+          blob: fileObj,
+          timestamp: Date.now()
+        };
+        const req = store.add(record);
+        req.onsuccess = () => resolve(record);
+        req.onerror = (e) => reject(e);
+      });
+    }
+
+    function getAllVaultPdfs() {
+      return new Promise((resolve) => {
+        if (!dbInstance) return resolve([]);
+        const tx = dbInstance.transaction(["vault_pdfs"], "readonly");
+        const store = tx.objectStore("vault_pdfs");
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = () => resolve([]);
+      });
+    }
+
+    function deletePdfFromVault(id) {
+      return new Promise((resolve) => {
+        if (!dbInstance) return resolve();
+        const tx = dbInstance.transaction(["vault_pdfs"], "readwrite");
+        const store = tx.objectStore("vault_pdfs");
+        const req = store.delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = () => resolve();
+      });
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes || bytes === 0) return "0 B";
+      const k = 1024;
+      const dm = 1;
+      const sizes = ["B", "KB", "MB", "GB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
+    }
+
+    // ==========================================
+    // INITIAL APP INITIALIZATION & CLOUD LISTENERS
+    // ==========================================
+    function loadInitial() {
+      const data = localStorage.getItem("studyhub_v9_local");
+      if (data) {
+        try {
+          const parsed = JSON.parse(data);
+          state.dailyLogs = parsed.dailyLogs || {};
+          state.targets = (parsed.targets || []).map(t => ({ ...t, running: false }));
+          state.targetHistory = parsed.targetHistory || [];
+          state.lastReadChatCount = parsed.lastReadChatCount || 0;
+        } catch(e){}
+      }
+
+      initPdfDatabase().then(() => {
+        renderPdfShelf();
+      }).catch(err => console.error(err));
+
+      rtdb.ref("ecosystem").on("value", snapshot => {
+        const cloudData = snapshot.val() || {};
+        cloudReady = true;
+        if (cloudData) {
+          state.users = cloudData.users || [];
+          state.roomOccupants = cloudData.roomOccupants || {};
+          state.suggestions = cloudData.suggestions || [];
+          state.broadcast = cloudData.broadcast || null;
+          state.ttt = cloudData.ttt || { board: Array(9).fill(""), turn: "X", pX: "", pO: "" };
+          state.ttt.board = Array.from({ length: 9 }, (_, i) => (state.ttt.board && state.ttt.board[i]) || "");
+          state.chat = cloudData.chat || [];
+          state.kicks = cloudData.kicks || {};
+          state.commands = cloudData.commands || {};
+
+          if (state.currentUser && !state.isOwner) {
+            const exists = state.users.find(u => u.email === state.currentUser.email);
+            if (!exists) {
+              alert("Your account access has been revoked by admin.");
+              localStorage.removeItem("studyhub_v9_local");
+              location.reload();
+              return;
+            } else {
+              state.currentUser.name = exists.name;
+              state.currentUser.pass = exists.pass;
+              state.currentUser.goal = exists.goal;
+              if (exists.logs) state.dailyLogs = exists.logs;
+              document.getElementById("roleBadge").textContent = exists.name;
+            }
+          }
+
+          handleChatBadge();
+          renderSeats();
+          renderMonitorDesk();
+          renderPublicMembers();
+          renderPublicLiveList();
+          renderMonitorPanel();
+          handleBroadcastSync();
+          renderTttBoard();
+          renderChatMessages();
+          renderHistory();
+          handleKick();
+          handleCommand();
+          updateLocalTileUI();
+        }
+      }, err => {
+        console.error("Firebase connection error:", err);
+      });
+    }
+
+    const emailKey = e => encodeURIComponent(String(e || "")).replace(/\./g, "%2E");
+    const cleanJson = v => JSON.parse(JSON.stringify(v === undefined ? null : v));
+    const ecoRef = p => rtdb.ref("ecosystem" + (p ? "/" + p : ""));
+    function cloudUpdate(map) {
+      if (!cloudReady) return;
+      ecoRef().update(map).catch(console.error);
+    }
+
+    function isLiveOccupant(occ) {
+      if (!occ || !occ.name) return false;
+      return occ.email === OWNER_EMAIL || state.users.some(u => u.email === occ.email);
+    }
+    const liveOcc = o => (isLiveOccupant(o) ? o : null);
+
+    function pushToList(path, item, cap) {
+      if (!cloudReady) return;
+      ecoRef(path).transaction(cur => {
+        let list = Array.isArray(cur) ? cur.slice() : (cur ? Object.values(cur) : []);
+        list.push(cleanJson(item));
+        if (cap) while (list.length > cap) list.shift();
+        return list;
+      }).catch(console.error);
+    }
+
+    function saveLocal() {
+      localStorage.setItem("studyhub_v9_local", JSON.stringify({
+        dailyLogs: state.dailyLogs,
+        targets: state.targets,
+        targetHistory: state.targetHistory,
+        lastReadChatCount: state.lastReadChatCount
+      }));
+    }
+
+    function syncMyUserRecord() {
+      const me = state.currentUser;
+      if (!me || state.isOwner) return;
+      ecoRef("users").transaction(users => {
+        if (users === null) return users;
+        const list = Array.isArray(users) ? users.slice() : Object.values(users);
+        const i = list.findIndex(u => u && u.email === me.email);
+        if (i === -1) return;
+        list[i] = Object.assign({}, list[i], {
+          name: me.name,
+          pass: me.pass,
+          goal: me.goal !== undefined ? me.goal : list[i].goal,
+          logs: state.dailyLogs,
+          targets: state.targets
+        });
+        return cleanJson(list);
+      });
+    }
+
+    function syncToCloud(parts) {
+      saveLocal();
+      if (!cloudReady) return;
+      parts = parts || ["user"];
+      const upd = {};
+      if (parts.includes("user")) syncMyUserRecord();
+      if (state.isOwner) {
+        if (parts.includes("users")) upd.users = cleanJson(state.users);
+        if (parts.includes("suggestions")) upd.suggestions = cleanJson(state.suggestions);
+        if (parts.includes("broadcast")) upd.broadcast = cleanJson(state.broadcast);
+      }
+      if (parts.includes("ttt")) upd.ttt = cleanJson(state.ttt);
+      if (Object.keys(upd).length) cloudUpdate(upd);
+    }
+
+    loadInitial();
+
+    // Drawer Setup
+    const sideDrawer = document.getElementById("sideDrawer");
+    const drawerOverlay = document.getElementById("drawerOverlay");
+    document.getElementById("openDrawerBtn").onclick = () => {
+      sideDrawer.classList.add("open");
+      drawerOverlay.classList.add("active");
+    };
+    function closeDrawer() {
+      sideDrawer.classList.remove("open");
+      drawerOverlay.classList.remove("active");
+    }
+    document.getElementById("closeDrawerBtn").onclick = closeDrawer;
+    drawerOverlay.onclick = closeDrawer;
+
+    // Direct Registration / Sign In
+    let isRegisterMode = false;
+    const authModal = document.getElementById("authModal");
+    const authToggleLink = document.getElementById("authToggleLink");
+    const authName = document.getElementById("authName");
+    const loginActionBtn = document.getElementById("loginActionBtn");
+    const authAlert = document.getElementById("authAlert");
+
+    authToggleLink.onclick = (e) => {
+      e.preventDefault();
+      isRegisterMode = !isRegisterMode;
+      authName.style.display = isRegisterMode ? "block" : "none";
+      loginActionBtn.textContent = isRegisterMode ? "Register & Enter" : "Sign In";
+      document.getElementById("authModalTitle").textContent = isRegisterMode ? "Create Account" : "Welcome to Study Hub";
+      document.getElementById("authModalSubtitle").textContent = isRegisterMode ? "Instant access - no waiting required" : "Sign in to join the virtual study desks";
+      authToggleLink.textContent = isRegisterMode ? "Sign In Instead" : "Create Account";
+      authAlert.style.display = "none";
+    };
+
+    loginActionBtn.onclick = () => {
+      const email = document.getElementById("authEmail").value.trim().toLowerCase();
+      const pass = document.getElementById("authPass").value;
+      const name = authName.value.trim();
+
+      if (!email || !pass) return showAuthAlert("Please provide username and password.");
+
+      if (email === OWNER_EMAIL && pass === OWNER_PASS) {
+        state.currentUser = { email, name: "Gourav (Admin)", pass: OWNER_PASS, role: "owner", tag: "Super Admin" };
+        state.isOwner = true;
+        authSuccess();
+        return;
+      }
+
+      if (isRegisterMode) {
+        if (!name) return showAuthAlert("Full name is required.");
+        if (state.users.some(u => u.email === email)) {
+          return showAuthAlert("This username/email is already registered. Please login.");
+        }
+        const newUser = { email, pass, name, id: Date.now(), tag: "Student", goal: "Self Study", logs: {} };
+        state.users.push(newUser);
+        pushToList("users", newUser);
+        state.currentUser = newUser;
+        state.isOwner = false;
+        authSuccess();
+        toast("Account registered successfully! Welcome 🎉");
+      } else {
+        const user = state.users.find(u => u.email === email && u.pass === pass);
+        if (!user) return showAuthAlert("Invalid credentials. Check password or register.");
+        state.currentUser = user;
+        state.isOwner = false;
+        if (user.logs) state.dailyLogs = user.logs;
+        if (user.targets) state.targets = user.targets.map(t => ({ ...t, running: false }));
+        authSuccess();
+      }
+    };
+
+    function showAuthAlert(msg) {
+      authAlert.textContent = msg;
+      authAlert.style.display = "block";
+    }
+
+    function authSuccess() {
+      authModal.style.display = "none";
+      document.getElementById("roleBadge").textContent = state.isOwner ? "👑 Admin" : state.currentUser.name;
+      if (state.isOwner) {
+        document.getElementById("roleBadge").classList.add("admin");
+        document.getElementById("drawerMonitorBtn").style.display = "flex";
+        document.getElementById("quickMonitorBtn").style.display = "flex";
+        document.getElementById("drawerLiveBtn").style.display = "flex";
+        document.getElementById("quickLiveBtn").style.display = "flex";
+        document.getElementById("monitorBroadcastSection").style.display = "block";
+        document.getElementById("adminCleanChatBtn").style.display = "inline-flex";
+      }
+      document.getElementById("profName").value = state.currentUser.name;
+      document.getElementById("profEmail").value = state.currentUser.email;
+      document.getElementById("profPass").value = state.currentUser.pass;
+      document.getElementById("profGoal").value = state.currentUser.goal || "";
+
+      initApp();
+      initNativeWebRTC();
+      toast("Welcome, " + state.currentUser.name);
+    }
+
+    // Forgot Password
+    document.getElementById("forgotPassLink").onclick = (e) => {
+      e.preventDefault();
+      document.getElementById("forgotModal").style.display = "flex";
+    };
+    document.getElementById("closeResetModalBtn").onclick = () => {
+      document.getElementById("forgotModal").style.display = "none";
+    };
+    document.getElementById("doResetPassBtn").onclick = () => {
+      const email = document.getElementById("resetEmail").value.trim().toLowerCase();
+      const newP = document.getElementById("resetNewPass").value;
+      if (!email || !newP) return alert("Email and new password required.");
+      const uIdx = state.users.findIndex(u => u.email === email);
+      if (uIdx === -1) return alert("User not found!");
+      state.users[uIdx].pass = newP;
+      syncToCloud(["users"]);
+      document.getElementById("forgotModal").style.display = "none";
+      alert("Password updated! Now sign in with new password.");
+    };
+
+    function doLogout() {
+      bankTime();
+      if (state.mySeat) {
+        const s = state.mySeat;
+        delete state.roomOccupants[s];
+        state.mySeat = null;
+        cloudUpdate({ ["roomOccupants/" + s]: null });
+      }
+      if (myPeerId) {
+        rtdb.ref(`ecosystem/video_room/peers/${myPeerId}`).remove();
+      }
+      location.reload();
+    }
+    document.getElementById("quickLogoutBtn").onclick = doLogout;
+    document.getElementById("drawerLogoutBtn").onclick = doLogout;
+
+    function initApp() {
+      renderSeats();
+      renderMonitorDesk();
+      renderPublicMembers();
+      renderPublicLiveList();
+      renderMonitorPanel();
+      renderHistory();
+      renderTargets();
+      renderPdfShelf();
+      startTicker();
+    }
+
+    function getTodayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+
+    function bankTime() {
+      if (state.mySeat && !state.isPaused && state.studySince) {
+        const elapsed = (Date.now() - state.studySince) / 1000;
+        const key = getTodayKey();
+        state.dailyLogs[key] = (state.dailyLogs[key] || 0) + elapsed;
+        state.sessionAcc = (state.sessionAcc || 0) + elapsed;
+        state.studySince = Date.now();
+        syncToCloud();
+      }
+    }
+
+    function totalToday() {
+      let t = state.dailyLogs[getTodayKey()] || 0;
+      if (state.mySeat && !state.isPaused && state.studySince) {
+        t += (Date.now() - state.studySince) / 1000;
+      }
+      return t;
+    }
+
+    // Head Monitor Command Desk
+    function renderMonitorDesk() {
+      const box = document.getElementById("monitorStationBox");
+      const pill = document.getElementById("monitorDeskStatusPill");
+      const btn = document.getElementById("claimMonitorDeskBtn");
+      const occ = liveOcc(state.roomOccupants["MONITOR-HEAD"]);
+
+      if (occ) {
+        box.classList.add("live");
+        pill.style.background = "var(--accent)";
+        pill.style.color = "#fff";
+        pill.textContent = `LIVE (${occ.name})`;
+        btn.textContent = state.isOwner ? "Leave Desk" : "Occupied";
+        btn.className = state.isOwner ? "btn btn-danger btn-sm" : "btn btn-outline btn-sm";
+      } else {
+        box.classList.remove("live");
+        pill.style.background = "#374151";
+        pill.style.color = "#9ca3af";
+        pill.textContent = "Offline";
+        btn.textContent = "Sit as Monitor";
+        btn.className = "btn btn-warning btn-sm";
+      }
+    }
+
+    document.getElementById("claimMonitorDeskBtn").onclick = () => {
+      if (!state.isOwner) return alert("Yeh desk exclusively Admin ke liye hai.");
+      if (state.mySeat === "MONITOR-HEAD") {
+        bankTime();
+        delete state.roomOccupants["MONITOR-HEAD"];
+        state.mySeat = null;
+        state.studySince = 0;
+        state.sessionAcc = 0;
+        cloudUpdate({ "roomOccupants/MONITOR-HEAD": null });
+        renderMonitorDesk();
+        updateLocalTileUI();
+        toast("Monitor station released.");
+      } else {
+        claimSeat("MONITOR-HEAD");
+      }
+    };
+
+    // Seat Claiming Logic
+    function claimSeat(seatId) {
+      if (seatId === "MONITOR-HEAD" && !state.isOwner) return alert("Admin only seat.");
+      if (state.mySeat === seatId) return;
+
+      bankTime();
+      const seatUpdates = {};
+      Object.keys(state.roomOccupants).forEach(s => {
+        if (state.roomOccupants[s] && state.roomOccupants[s].email === state.currentUser.email) {
+          delete state.roomOccupants[s];
+          seatUpdates["roomOccupants/" + s] = null;
+        }
+      });
+
+      state.mySeat = seatId;
+      state.isPaused = false;
+      state.studySince = Date.now();
+      state.seatedAt = state.studySince;
+      state.sessionAcc = 0;
+
+      state.roomOccupants[seatId] = {
+        name: state.currentUser.name,
+        email: state.currentUser.email,
+        tag: state.currentUser.tag || (state.isOwner ? "Head Admin" : "Student"),
+        since: state.seatedAt
+      };
+      seatUpdates["roomOccupants/" + seatId] = cleanJson(state.roomOccupants[seatId]);
+      cloudUpdate(seatUpdates);
+
+      // Update peer seat info in video room
+      if (myPeerId) {
+        rtdb.ref(`ecosystem/video_room/peers/${myPeerId}/seat`).set(seatId);
+      }
+
+      document.getElementById("currentDeskLabel").textContent = seatId;
+      document.getElementById("liveStatusTag").textContent = "Studying";
+      document.getElementById("liveStatusTag").style.background = "var(--accent)";
+
+      renderSeats();
+      renderMonitorDesk();
+      renderPublicLiveList();
+      updateLocalTileUI();
+
+      toast("Desk " + seatId + " occupied. Live video active!");
+    }
+
+    function renderSeats() {
+      const container = document.getElementById("seatMatrix");
+      container.innerHTML = "";
+
+      for (let i = 1; i <= TOTAL_DESKS; i++) {
+        const seatId = "D-" + String(i).padStart(2, '0');
+        const occupant = liveOcc(state.roomOccupants[seatId]);
+        const isMine = state.currentUser && occupant && occupant.email === state.currentUser.email;
+        if (isMine) state.mySeat = seatId;
+
+        const d = document.createElement("div");
+        d.className = "seat" + (isMine ? " mine" : occupant ? " occupied" : "");
+        let label = isMine ? "You" : occupant ? occupant.name : "Free";
+        d.innerHTML = `<span>${seatId}</span><span class="u-name">${escapeHtml(label)}</span>`;
+
+        if (!occupant || isMine) {
+          d.onclick = () => claimSeat(seatId);
+        } else if (state.isOwner) {
+          d.title = "Manage Student";
+          d.onclick = () => monitorAction(seatId, "kick");
+        }
+        container.appendChild(d);
+      }
+    }
+
+    document.getElementById("leaveDeskBtn").onclick = () => {
+      if (!state.mySeat) return toast("No desk assigned.");
+      bankTime();
+      const leaving = state.mySeat;
+      delete state.roomOccupants[leaving];
+      state.mySeat = null;
+      state.studySince = 0;
+      state.sessionAcc = 0;
+      cloudUpdate({ ["roomOccupants/" + leaving]: null });
+      if (myPeerId) {
+        rtdb.ref(`ecosystem/video_room/peers/${myPeerId}/seat`).set("None");
+      }
+      document.getElementById("currentDeskLabel").textContent = "Unassigned";
+      document.getElementById("liveStatusTag").textContent = "Idle";
+      document.getElementById("liveStatusTag").style.background = "#4b5563";
+      document.getElementById("sessionTimer").textContent = "00:00:00";
+      renderSeats();
+      renderMonitorDesk();
+      renderPublicLiveList();
+      updateLocalTileUI();
+      toast("Desk released.");
+    };
+
+    document.getElementById("pauseStudyBtn").onclick = () => {
+      if (!state.mySeat) return;
+      bankTime();
+      state.isPaused = !state.isPaused;
+      state.studySince = Date.now();
+      document.getElementById("pauseStudyBtn").innerHTML = state.isPaused ? '<i data-lucide="play"></i> Resume' : '<i data-lucide="pause"></i> Pause';
+      document.getElementById("liveStatusTag").textContent = state.isPaused ? "Paused" : "Studying";
+      document.getElementById("liveStatusTag").style.background = state.isPaused ? "var(--warning)" : "var(--accent)";
+      lucide.createIcons();
+    };
+
+    let tickCount = 0;
+    function startTicker() {
+      setInterval(() => {
+        tickCount++;
+        if (tickCount % 60 === 0) bankTime();
+        document.getElementById("todayLogStat").textContent = fmtHours(totalToday());
+
+        updateSessionUI();
+
+        if (activeRunningTargetIdx !== null && state.targets[activeRunningTargetIdx]) {
+          const t = state.targets[activeRunningTargetIdx];
+          if (t.running && t.remaining > 0) {
+            t.remaining--;
+            document.getElementById("homeActiveTaskTimer").textContent = fmtTime(t.remaining);
+            renderTargets();
+          } else if (t.remaining <= 0 && t.running) {
+            t.running = false;
+            t.done = true;
+            toast(`Target "${t.subject}" completed! 🎉`);
+            hideHomeTaskBanner();
+            renderTargets();
+            syncToCloud();
+          }
+        }
+      }, 1000);
+    }
+
+    function fmtTime(s) {
+      s = Math.max(0, Math.floor(s));
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      const sec = s % 60;
+      return h > 0 ? `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}` : `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+    }
+
+    function fmtHours(s) {
+      s = Math.max(0, Math.floor(s));
+      return `${Math.floor(s / 3600)}h ${Math.floor((s % 3600) / 60)}m`;
+    }
+
+    function renderPublicLiveList() {
+      const list = document.getElementById("publicLiveList");
+      const seats = Object.keys(state.roomOccupants).filter(sid => liveOcc(state.roomOccupants[sid]));
+      document.getElementById("publicLiveBadge").textContent = seats.length + " Live";
+      list.innerHTML = !seats.length ? `<div style="font-size:12px; color:var(--text-mute);">No students studying currently.</div>` : "";
+
+      seats.forEach(sid => {
+        const occ = state.roomOccupants[sid];
+        const elapsedMins = Math.max(1, Math.floor((Date.now() - (occ.since || Date.now())) / 60000));
+        const item = document.createElement("div");
+        item.style = "display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid var(--card-border); padding:8px 12px; border-radius:8px;";
+        item.innerHTML = `
+          <div>
+            <b>${escapeHtml(occ.name)}</b> <span class="badge custom-tag">${escapeHtml(occ.tag || 'Student')}</span>
+            <div style="font-size:11px; color:var(--text-mute);">Desk ${sid} · Active for ${elapsedMins} mins</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:var(--accent);">🟢 Studying</span>
+        `;
+        list.appendChild(item);
+      });
+      renderLiveMembersAdmin();
+    }
+
+    // Targets & History
+    document.getElementById("addTargetBtn").onclick = () => {
+      const sub = document.getElementById("targetSubject").value.trim();
+      const mins = parseInt(document.getElementById("targetDuration").value) || 0;
+      if (!sub) return toast("Enter target name");
+
+      const t = { id: Date.now(), subject: sub, totalSeconds: mins * 60, remaining: mins * 60, running: false, done: false, date: getTodayKey() };
+      state.targets.push(t);
+      state.targetHistory.unshift(t);
+      document.getElementById("targetSubject").value = "";
+      document.getElementById("targetDuration").value = "";
+      renderTargets();
+      syncToCloud();
+      toast("Target added!");
+    };
+
+    function renderTargets() {
+      const box = document.getElementById("targetListContainer");
+      box.innerHTML = !state.targets.length ? `<div style="font-size:12px; color:var(--text-mute);">No active targets.</div>` : "";
+      state.targets.forEach((t, idx) => {
+        const item = document.createElement("div");
+        item.style = "background:var(--surface); border:1px solid var(--card-border); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;";
+        item.innerHTML = `
+          <div><b>${escapeHtml(t.subject)}</b><br><span style="font-family:var(--font-mono); font-size:12px; color:var(--primary);">${fmtTime(t.remaining)}</span></div>
+          <div class="row">
+            ${t.totalSeconds > 0 && !t.done ? `<button class="btn btn-sm btn-outline" onclick="toggleTargetTimer(${idx})">${t.running ? 'Pause' : 'Start'}</button>` : ''}
+            <button class="btn btn-sm ${t.done ? 'btn-outline' : 'btn-success'}" onclick="markTargetDone(${idx})">${t.done ? '↩️' : '✓'}</button>
+            <button class="btn btn-sm btn-danger" onclick="deleteTarget(${idx})">✕</button>
+          </div>
+        `;
+        box.appendChild(item);
+      });
+
+      const histBox = document.getElementById("targetHistoryContainer");
+      histBox.innerHTML = !state.targetHistory.length ? `<div style="font-size:11px; color:var(--text-mute);">No archived targets yet.</div>` : "";
+      state.targetHistory.slice(0, 10).forEach(h => {
+        const d = document.createElement("div");
+        d.style = "font-size:12px; display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--card-border);";
+        d.innerHTML = `<span>${escapeHtml(h.subject)}</span><small style="color:var(--text-mute);">${h.date}</small>`;
+        histBox.appendChild(d);
+      });
+    }
+
+    window.toggleTargetTimer = (idx) => {
+      const target = state.targets[idx];
+      target.running = !target.running;
+      activeRunningTargetIdx = target.running ? idx : null;
+      if (target.running) showHomeTaskBanner(target); else hideHomeTaskBanner();
+      renderTargets();
+      syncToCloud();
+    };
+
+    function showHomeTaskBanner(t) {
+      document.getElementById("homeActiveTaskBanner").style.display = "block";
+      document.getElementById("homeActiveTaskName").textContent = t.subject;
+      document.getElementById("homeActiveTaskTimer").textContent = fmtTime(t.remaining);
+    }
+    function hideHomeTaskBanner() { document.getElementById("homeActiveTaskBanner").style.display = "none"; }
+    window.markTargetDone = (idx) => {
+      state.targets[idx].done = !state.targets[idx].done;
+      state.targets[idx].running = false;
+      hideHomeTaskBanner();
+      renderTargets();
+      syncToCloud();
+    };
+    window.deleteTarget = (idx) => {
+      state.targets.splice(idx, 1);
+      hideHomeTaskBanner();
+      renderTargets();
+      syncToCloud();
+    };
+
+    // Chat (Dynamic Number Pill Counter)
+    function handleChatBadge() {
+      const unread = Math.max(0, state.chat.length - (state.lastReadChatCount || 0));
+      const bNavBadge = document.getElementById("bottomChatCountBadge");
+      const dNavBadge = document.getElementById("drawerChatCountBadge");
+
+      if (unread > 0) {
+        const displayVal = unread > 99 ? "99+" : String(unread);
+        bNavBadge.textContent = displayVal;
+        bNavBadge.style.display = "inline-block";
+        dNavBadge.textContent = displayVal;
+        dNavBadge.style.display = "inline-block";
+      } else {
+        bNavBadge.style.display = "none";
+        dNavBadge.style.display = "none";
+      }
+    }
+
+    function renderChatMessages() {
+      const box = document.getElementById("chatContainer");
+      box.innerHTML = !state.chat.length ? `<div style="text-align:center; font-size:12px; color:var(--text-mute); margin-top:20px;">No messages yet.</div>` : "";
+
+      state.chat.forEach((msg, idx) => {
+        const isMine = state.currentUser && msg.senderEmail === state.currentUser.email;
+        const msgEl = document.createElement("div");
+        msgEl.className = "chat-msg " + (isMine ? "mine" : "others");
+        msgEl.innerHTML = `
+          <div class="chat-meta">
+            <b>${escapeHtml(msg.senderName)}</b>
+            <span>${escapeHtml(msg.date || '')} ${escapeHtml(msg.time)} ${state.isOwner ? `<button class="chat-actions-btn" onclick="deleteChatMessage(${idx})">🗑️</button>` : ''}</span>
+          </div>
+          <div>${escapeHtml(msg.text)}</div>
+        `;
+        box.appendChild(msgEl);
+      });
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function format12Hour(d) {
+      let h = d.getHours();
+      const m = String(d.getMinutes()).padStart(2, '0');
+      const ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12 || 12;
+      return `${h}:${m} ${ampm}`;
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+      if (!text || !state.currentUser) return;
+
+      const d = new Date();
+      const msg = {
+        id: Date.now(),
+        senderName: state.currentUser.name,
+        senderEmail: state.currentUser.email,
+        text: text,
+        time: format12Hour(d),
+        date: `${d.getDate()}/${d.getMonth()+1}`
+      };
+      state.chat.push(msg);
+      state.lastReadChatCount = state.chat.length;
+      saveLocal();
+      pushToList("chat", msg, 200);
+      input.value = "";
+      renderChatMessages();
+      handleChatBadge();
+    }
+    document.getElementById("sendChatBtn").onclick = sendChatMessage;
+    document.getElementById("chatInput").addEventListener("keypress", e => { if (e.key === "Enter") sendChatMessage(); });
+
+    window.deleteChatMessage = (idx) => {
+      if (!state.isOwner) return;
+      state.chat.splice(idx, 1);
+      cloudUpdate({ chat: cleanJson(state.chat) });
+      renderChatMessages();
+    };
+
+    document.getElementById("adminCleanChatBtn").onclick = () => {
+      if (!state.isOwner) return;
+      if (confirm("Delete all messages?")) {
+        state.chat = [];
+        cloudUpdate({ chat: [] });
+        renderChatMessages();
+      }
+    };
+
+    // Public Members Directory
+    function renderPublicMembers() {
+      const listEl = document.getElementById("publicMembersList");
+      listEl.innerHTML = "";
+      let count = 0;
+      state.users.forEach(u => {
+        let isOnline = false;
+        Object.keys(state.roomOccupants).forEach(s => {
+          if (state.roomOccupants[s] && state.roomOccupants[s].email === u.email) isOnline = true;
+        });
+        if (isOnline) count++;
+        const d = document.createElement("div");
+        d.style = "background:var(--surface); border:1px solid var(--card-border); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;";
+        d.innerHTML = `
+          <div>
+            <b>${escapeHtml(u.name)}</b> <span class="badge custom-tag">${escapeHtml(u.tag || 'Student')}</span>
+            <div style="font-size:11px; color:var(--text-mute); margin-top:2px;">Goal: ${escapeHtml(u.goal || 'General')}</div>
+          </div>
+          <span style="font-size:11px; font-weight:700; color:${isOnline ? 'var(--accent)' : 'var(--text-mute)'};">${isOnline ? '🟢 Live' : '⚪ Offline'}</span>
+        `;
+        listEl.appendChild(d);
+      });
+      document.getElementById("onlineMemberCount").textContent = `${count} Active`;
+    }
+
+    // Vault PDF Documents (IndexedDB)
+    let cachedVaultPdfs = [];
+    let currentActivePdfBlobUrl = null;
+
+    document.getElementById("uploadPdfTrigger").onclick = () => document.getElementById("pdfFileInput").click();
+    
+    document.getElementById("pdfFileInput").onchange = async (e) => {
+      const files = Array.from(e.target.files);
+      if (!files.length) return;
+
+      const statusEl = document.getElementById("pdfUploadStatus");
+      statusEl.style.display = "block";
+      statusEl.textContent = `⏳ Storing ${files.length} document(s) in Vault...`;
+
+      try {
+        for (const file of files) {
+          await storePdfToVault(file);
+        }
+        toast("PDF(s) successfully saved permanently to Vault!");
+      } catch (err) {
+        console.error("Storage error:", err);
+        alert("Failed to store PDF: " + err);
+      } finally {
+        statusEl.style.display = "none";
+        document.getElementById("pdfFileInput").value = "";
+        renderPdfShelf();
+      }
+    };
+
+    async function renderPdfShelf() {
+      const shelf = document.getElementById("pdfShelfContainer");
+      cachedVaultPdfs = await getAllVaultPdfs();
+
+      shelf.innerHTML = !cachedVaultPdfs.length ? `<div style="font-size:12px; color:var(--text-mute);">No PDF documents stored. Upload your study notes or books.</div>` : "";
+      
+      cachedVaultPdfs.forEach((p, idx) => {
+        const d = document.createElement("div");
+        d.style = "display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid var(--card-border); padding:10px 14px; border-radius:8px; gap:8px;";
+        d.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px; overflow:hidden; max-width:65%;">
+            <i data-lucide="file-text" style="color:var(--primary); flex-shrink:0;"></i>
+            <div style="overflow:hidden;">
+              <div style="font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(p.name)}</div>
+              <div style="font-size:11px; color:var(--text-mute);">${formatFileSize(p.size)}</div>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn btn-sm btn-outline" onclick="viewVaultPdf(${idx})"><i data-lucide="eye"></i> View</button>
+            <button class="btn btn-sm btn-danger" onclick="removeVaultPdf('${p.id}')">✕</button>
+          </div>
+        `;
+        shelf.appendChild(d);
+      });
+      lucide.createIcons();
+    }
+
+    window.viewVaultPdf = (idx) => {
+      const p = cachedVaultPdfs[idx];
+      if (!p) return;
+
+      if (currentActivePdfBlobUrl) {
+        URL.revokeObjectURL(currentActivePdfBlobUrl);
+      }
+
+      currentActivePdfBlobUrl = URL.createObjectURL(p.blob);
+      document.getElementById("pdfViewTitle").textContent = `${p.name} (${formatFileSize(p.size)})`;
+      document.getElementById("pdfViewFrame").src = currentActivePdfBlobUrl;
+      
+      const downloadLink = document.getElementById("pdfDownloadLink");
+      downloadLink.href = currentActivePdfBlobUrl;
+      downloadLink.download = p.name;
+
+      document.getElementById("pdfViewModal").style.display = "flex";
+    };
+
+    document.getElementById("closePdfViewBtn").onclick = () => {
+      document.getElementById("pdfViewModal").style.display = "none";
+      document.getElementById("pdfViewFrame").src = "about:blank";
+      if (currentActivePdfBlobUrl) {
+        URL.revokeObjectURL(currentActivePdfBlobUrl);
+        currentActivePdfBlobUrl = null;
+      }
+    };
+
+    window.removeVaultPdf = async (id) => {
+      if (confirm("Kya aap is document ko delete karna chahte hain?")) {
+        await deletePdfFromVault(id);
+        toast("Document deleted.");
+        renderPdfShelf();
+      }
+    };
+
+    // Analytics (Responsive Graph + Grid)
+    function renderHistory() {
+      const container = document.getElementById("historyLogContainer");
+      const chart = document.getElementById("analyticsBarChart");
+      container.innerHTML = "";
+      chart.innerHTML = "";
+
+      const dates = Object.keys(state.dailyLogs).sort().reverse();
+      let lifetime = 0;
+      dates.forEach(d => {
+        const sec = state.dailyLogs[d];
+        lifetime += sec;
+        const row = document.createElement("div");
+        row.style = "display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--card-border); font-size:12px;";
+        row.innerHTML = `<span>📅 ${d}</span><b>${fmtHours(sec)}</b>`;
+        container.appendChild(row);
+      });
+      document.getElementById("totalLogStat").textContent = fmtHours(lifetime);
+
+      const last7 = dates.slice(0, 7).reverse();
+      const maxSec = Math.max(...last7.map(d => state.dailyLogs[d]), 3600);
+      last7.forEach(d => {
+        const hPercent = (state.dailyLogs[d] / maxSec) * 100;
+        const col = document.createElement("div");
+        col.className = "chart-bar-wrap";
+        col.innerHTML = `
+          <div class="chart-bar" style="height:${Math.max(8, hPercent)}%;"></div>
+          <span class="chart-label">${d.slice(5)}</span>
+        `;
+        chart.appendChild(col);
+      });
+    }
+
+    // =====================================================
+    // MULTIPLAYER GAMES (win detect + points + winner announce)
+    // =====================================================
+    const WIN_LINES = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    const gEl = id => document.getElementById(id);
+    let gameScores = {}, lastWinData = null, seenWinId = null, winPopupTimer = null;
+
+    function setGameTab(which) {
+      gEl("tttGameWrap").style.display = which === "ttt" ? "block" : "none";
+      gEl("mathGameWrap").style.display = which === "math" ? "block" : "none";
+      gEl("gameTttTab").classList.toggle("active", which === "ttt");
+      gEl("gameMathTab").classList.toggle("active", which === "math");
+      if (which === "math") ensureMathGame();
+    }
+    gEl("gameTttTab").onclick = () => setGameTab("ttt");
+    gEl("gameMathTab").onclick = () => setGameTab("math");
+
+    function addPoints(pts, gameName) {
+      const key = emailKey(state.currentUser.email), name = state.currentUser.name;
+      ecoRef("scores/" + key).transaction(cur => ({ name, points: ((cur && cur.points) || 0) + pts, wins: ((cur && cur.wins) || 0) + 1 }));
+      ecoRef("lastWin").set({ id: Date.now() + "_" + Math.random().toString(36).slice(2, 6), name, game: gameName, pts, time: Date.now() });
+    }
+
+    function announceWin(w) {
+      const top = Object.values(gameScores).sort((a, b) => b.points - a.points).slice(0, 3);
+      const pop = gEl("winPopup");
+      pop.innerHTML = `🏆 ${escapeHtml(w.name)} ne ${escapeHtml(w.game)} jeeta! +${w.pts} points` +
+        (top.length ? `<div style="font-size:11px; font-weight:600; margin-top:4px;">${top.map((u, i) => `${["🥇","🥈","🥉"][i]} ${escapeHtml(u.name)} ${u.points}`).join(" &nbsp; ")}</div>` : "");
+      pop.style.display = "block";
+      clearTimeout(winPopupTimer);
+      winPopupTimer = setTimeout(() => { pop.style.display = "none"; }, 7000);
+    }
+
+    function renderScoreboard() {
+      const box = gEl("gameScoreboard");
+      if (!box) return;
+      const list = Object.values(gameScores).sort((a, b) => b.points - a.points);
+      gEl("resetScoresBtn").style.display = state.isOwner ? "inline-flex" : "none";
+      gEl("lastWinLine").innerHTML = lastWinData
+        ? `🎉 Last winner: <b>${escapeHtml(lastWinData.name)}</b> — ${escapeHtml(lastWinData.game)} (+${lastWinData.pts} points)`
+        : "Abhi koi winner nahi — game khelo aur points jeeto!";
+      box.innerHTML = list.length ? "" : `<div style="font-size:12px; color:var(--text-mute);">Abhi kisi ke points nahi hain.</div>`;
+      list.forEach((u, i) => {
+        const row = document.createElement("div");
+        const isWinner = lastWinData && lastWinData.name === u.name;
+        row.style = `display:flex; justify-content:space-between; align-items:center; padding:8px 10px; border-radius:8px; margin-bottom:6px; font-size:13px; background:${isWinner ? "rgba(245,158,11,.15)" : "var(--surface)"}; border:1px solid ${isWinner ? "var(--warning)" : "var(--card-border)"};`;
+        row.innerHTML = `<span>${["🥇","🥈","🥉"][i] || (i + 1) + "."} <b>${escapeHtml(u.name)}</b> <span style="font-size:11px; color:var(--text-mute);">(${u.wins || 0} jeet)</span></span><b style="color:var(--accent);">${u.points} pts</b>`;
+        box.appendChild(row);
+      });
+    }
+    ecoRef("scores").on("value", s => { gameScores = s.val() || {}; renderScoreboard(); });
+    ecoRef("lastWin").on("value", s => {
+      const w = s.val(); lastWinData = w;
+      if (w && w.id !== seenWinId) { seenWinId = w.id; if (Date.now() - w.time < 20000) announceWin(w); }
+      renderScoreboard();
+    });
+    gEl("resetScoresBtn").onclick = () => {
+      if (!state.isOwner || !confirm("Sabke points reset karne hain?")) return;
+      ecoRef("scores").remove(); ecoRef("lastWin").remove();
+    };
+
+    // ---- Tic-Tac-Toe ----
+    const tttOwner = sym => (sym === "X" ? state.ttt.pX : state.ttt.pO);
+    function renderTttBoard() {
+      const boardEl = gEl("tttBoard");
+      boardEl.innerHTML = "";
+      const t = state.ttt;
+      let status;
+      if (t.winner === "Draw") status = "🤝 Draw! Dobara khelo";
+      else if (t.winner) status = `🏆 ${t.winner} (${tttOwner(t.winner) || "?"}) jeet gaya!`;
+      else if (!t.pX || !t.pO) status = `Players chahiye — X: ${t.pX || "khali"} | O: ${t.pO || "khali"}`;
+      else status = `Turn: ${t.turn} (${tttOwner(t.turn)}) • X: ${t.pX} | O: ${t.pO}`;
+      gEl("tttStatus").textContent = status;
+      const line = t.line || [];
+      t.board.forEach((val, i) => {
+        const cell = document.createElement("div");
+        const win = line.indexOf(i) !== -1;
+        cell.style = `aspect-ratio:1; background:${win ? "rgba(16,185,129,.25)" : "var(--surface)"}; border:1.5px solid ${win ? "var(--accent)" : "var(--card-border)"}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:clamp(20px, 4vw, 28px); font-weight:800; cursor:pointer; color:${val === "X" ? "var(--primary)" : "var(--danger)"};`;
+        cell.textContent = val;
+        cell.onclick = () => handleTttClick(i);
+        boardEl.appendChild(cell);
+      });
+    }
+    function joinTtt(sym) {
+      const me = state.currentUser.name, t = state.ttt, other = sym === "X" ? t.pO : t.pX, cur = sym === "X" ? t.pX : t.pO;
+      if (other === me) return toast("Aap dono side nahi ban sakte");
+      if (cur && cur !== me) return toast(`${sym} par ${cur} pehle se hai`);
+      if (sym === "X") t.pX = me; else t.pO = me;
+      syncToCloud(["ttt"]);
+      toast(`Aap Player ${sym} ho`);
+    }
+    gEl("joinXBtn").onclick = () => joinTtt("X");
+    gEl("joinOBtn").onclick = () => joinTtt("O");
+    function newTttRound(keepPlayers) {
+      const t = state.ttt;
+      state.ttt = { board: Array(9).fill(""), turn: "X", pX: keepPlayers ? t.pX : "", pO: keepPlayers ? t.pO : "" };
+      syncToCloud(["ttt"]);
+    }
+    gEl("resetTttBtn").onclick = () => newTttRound(false);
+    function handleTttClick(idx) {
+      const t = state.ttt;
+      if (t.winner || t.board[idx]) return;
+      if (!t.pX || !t.pO) return toast("Pehle X aur O dono player join karein");
+      const me = state.currentUser.name;
+      if (tttOwner(t.turn) !== me) return toast(`Abhi ${tttOwner(t.turn)} ki baari hai`);
+      t.board[idx] = t.turn;
+      const hit = WIN_LINES.find(l => t.board[l[0]] && t.board[l[0]] === t.board[l[1]] && t.board[l[0]] === t.board[l[2]]);
+      if (hit) { t.winner = t.turn; t.line = hit; }
+      else if (t.board.every(c => c)) t.winner = "Draw";
+      else t.turn = t.turn === "X" ? "O" : "X";
+      syncToCloud(["ttt"]);
+      if (hit) {
+        addPoints(10, "Tic-Tac-Toe");
+        setTimeout(() => { if (state.ttt.winner && state.ttt.winner !== "Draw") newTttRound(true); }, 8000);
+      } else if (t.winner === "Draw") {
+        setTimeout(() => { if (state.ttt.winner === "Draw") newTttRound(true); }, 5000);
+      }
+    }
+
+    // ---- Speed Math (shared question, first correct answer wins) ----
+    let mathGame = null;
+    function newMathQ() {
+      const r = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+      const op = ["+", "−", "×"][r(0, 2)];
+      let a, b, ans;
+      if (op === "+") { a = r(10, 99); b = r(10, 99); ans = a + b; }
+      else if (op === "−") { a = r(30, 99); b = r(1, a - 1); ans = a - b; }
+      else { a = r(2, 12); b = r(2, 12); ans = a * b; }
+      return { id: Date.now() + "_" + Math.random().toString(36).slice(2, 6), q: `${a} ${op} ${b}`, ans };
+    }
+    function ensureMathGame() { ecoRef("mathGame").transaction(cur => cur || newMathQ()); }
+    ecoRef("mathGame").on("value", s => {
+      mathGame = s.val();
+      if (!mathGame) return;
+      gEl("mathQuestion").textContent = `${mathGame.q} = ?`;
+      gEl("mathAnswer").disabled = !!mathGame.winner;
+      gEl("mathResult").textContent = mathGame.winner ? `🏆 ${mathGame.winner} ne sabse pehle sahi answer diya! (+10)` : "";
+    });
+    gEl("newMathBtn").onclick = () => ecoRef("mathGame").set(newMathQ());
+    gEl("submitMathBtn").onclick = () => {
+      if (!mathGame) return ensureMathGame();
+      if (mathGame.winner) return toast("Round khatam — naya question aa raha hai");
+      const val = parseInt(gEl("mathAnswer").value);
+      if (isNaN(val)) return;
+      if (val !== mathGame.ans) { toast("Galat! Try Again"); return; }
+      const id = mathGame.id;
+      ecoRef("mathGame").transaction(cur => {
+        if (!cur || cur.id !== id || cur.winner) return;
+        cur.winner = state.currentUser.name;
+        return cur;
+      }, (err, committed) => {
+        if (committed) {
+          addPoints(10, "Speed Math");
+          setTimeout(() => ecoRef("mathGame").transaction(c => (c && c.id === id) ? newMathQ() : c), 4000);
+        } else toast("Kisi aur ne pehle answer de diya!");
+      });
+      gEl("mathAnswer").value = "";
+    };
+
+    // Admin Monitor Panel (Credentials Inspection)
+    function renderMonitorPanel() {
+      const acceptedBox = document.getElementById("acceptedMembersList");
+      if (!acceptedBox) return;
+      acceptedBox.innerHTML = !state.users.length ? `<div style="font-size:12px; color:var(--text-mute);">No users registered yet.</div>` : "";
+
+      state.users.forEach((u, idx) => {
+        const d = document.createElement("div");
+        d.style = "background:var(--surface); border:1px solid var(--card-border); padding:10px 12px; border-radius:8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;";
+        d.innerHTML = `
+          <div>
+            <b>${escapeHtml(u.name)}</b> <span class="badge custom-tag">${escapeHtml(u.tag || 'Student')}</span>
+            <div style="font-size:11px; color:var(--text-mute); margin-top:2px;">ID: <b>${escapeHtml(u.email)}</b></div>
+            <div id="credPass-${idx}" style="font-size:11px; color:var(--primary); display:none;">Password: <b>${escapeHtml(u.pass)}</b></div>
+          </div>
+          <div class="row">
+            <button class="btn btn-outline btn-sm" onclick="togglePassView(${idx})">ID/Pass</button>
+            <button class="btn btn-outline btn-sm" onclick="assignTag(${idx})">Tag</button>
+            <button class="btn btn-danger btn-sm" onclick="removeMember(${idx})">Kick</button>
+          </div>
+        `;
+        acceptedBox.appendChild(d);
+      });
+    }
+
+    window.togglePassView = (idx) => {
+      const el = document.getElementById(`credPass-${idx}`);
+      if (el) el.style.display = el.style.display === "none" ? "block" : "none";
+    };
+
+    window.assignTag = (idx) => {
+      const tag = prompt("Assign custom tag/badge:", state.users[idx].tag || "Student");
+      if (tag) {
+        state.users[idx].tag = tag;
+        syncToCloud(["users"]);
+        renderMonitorPanel();
+      }
+    };
+
+    window.removeMember = (idx) => {
+      const user = state.users[idx];
+      if (confirm(`Kick & revoke access for ${user.name}?`)) {
+        state.users.splice(idx, 1);
+        syncToCloud(["users"]);
+        renderMonitorPanel();
+      }
+    };
+
+    function renderLiveMembersAdmin() {
+      const box = document.getElementById("liveMembersList");
+      if (!box || !state.isOwner) return;
+      const seats = Object.keys(state.roomOccupants).filter(sid => liveOcc(state.roomOccupants[sid]));
+      document.getElementById("liveCountBadge").textContent = seats.length + " Live";
+      box.innerHTML = !seats.length ? `<div style="font-size:12px; color:var(--text-mute);">No active members currently.</div>` : "";
+
+      seats.forEach(sid => {
+        const occ = state.roomOccupants[sid];
+        const row = document.createElement("div");
+        row.style = "display:flex; justify-content:space-between; align-items:center; background:var(--surface); border:1px solid var(--card-border); padding:8px 12px; border-radius:8px;";
+        row.innerHTML = `
+          <div><b>${escapeHtml(occ.name)}</b> (${sid})</div>
+          <div class="row">
+            <button class="btn btn-sm btn-outline" onclick="monitorAction('${sid}', 'msg')">Msg</button>
+            <button class="btn btn-sm btn-danger" onclick="monitorAction('${sid}', 'kick')">Kick</button>
+          </div>
+        `;
+        box.appendChild(row);
+      });
+    }
+
+    window.monitorAction = (seatId, act) => {
+      const occ = state.roomOccupants[seatId];
+      if (!occ) return;
+      if (act === "kick") {
+        delete state.roomOccupants[seatId];
+        cloudUpdate({ ["roomOccupants/" + seatId]: null });
+        toast(`${occ.name} removed from desk.`);
+      } else if (act === "msg") {
+        const m = prompt("Enter message for " + occ.name);
+        if (m) cloudUpdate({ ["commands/" + emailKey(occ.email)]: { id: Date.now(), type: "message", text: m } });
+      }
+    };
+
+    function handleKick() {
+      if (!state.currentUser || state.isOwner || !state.mySeat) return;
+      const k = state.kicks[emailKey(state.currentUser.email)];
+      if (k && k === state.seatedAt) {
+        state.mySeat = null;
+        document.getElementById("currentDeskLabel").textContent = "Unassigned";
+        toast("Admin removed you from desk.");
+      }
+    }
+
+    function handleCommand() {
+      if (!state.currentUser || state.isOwner) return;
+      const c = state.commands[emailKey(state.currentUser.email)];
+      if (!c || c.id === seenCmdId) return;
+      seenCmdId = c.id;
+      if (c.type === "message") alert("📢 Admin: " + c.text);
+    }
+
+    // =====================================================
+    // RADIO (normal + broadcast) - no more restart/pause
+    // =====================================================
+    function ytCmd(frame, func, args) {
+      try { frame.contentWindow.postMessage(JSON.stringify({ event: "command", func, args: args || [] }), "*"); } catch (e) {}
+    }
+    function ytUrl(vid) {
+      const origin = /^https?:/.test(location.origin) ? "&origin=" + encodeURIComponent(location.origin) : "";
+      return `https://www.youtube-nocookie.com/embed/${vid}?autoplay=1&playsinline=1&enablejsapi=1&loop=1&playlist=${vid}&rel=0${origin}`;
+    }
+    function extractYouTubeId(url) {
+      const m = String(url || "").match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|v\/|shorts\/|live\/))([\w-]{11})/);
+      return m ? m[1] : null;
+    }
+
+    let isGlobalMuted = false, globalKey = "", globalPaused = false;
+    function handleBroadcastSync() {
+      const b = state.broadcast;
+      const banner = document.getElementById("globalRadioBanner");
+      const player = document.getElementById("globalYtPlayer");
+      if (b && b.vid) {
+        banner.style.display = "block";
+        document.getElementById("globalRadioTitle").textContent = `${b.startedBy} broadcasting track`;
+        const key = b.vid + "|" + (b.startedAt || 0);
+        if (key !== globalKey) {            // only reload when the broadcast really changes
+          globalKey = key;
+          globalPaused = false;
+          player.src = ytUrl(b.vid);
+          ytCmd(document.getElementById("ytPlayerFrame"), "pauseVideo");
+          document.getElementById("globalPlayPauseBtn").textContent = "⏸ Pause";
+          toast(`📻 ${b.startedBy} ne song broadcast kiya`);
+        }
+      } else {
+        banner.style.display = "none";
+        if (globalKey) { globalKey = ""; player.src = "about:blank"; }
+      }
+    }
+    document.getElementById("toggleGlobalAudioBtn").onclick = () => {
+      isGlobalMuted = !isGlobalMuted;
+      ytCmd(document.getElementById("globalYtPlayer"), isGlobalMuted ? "mute" : "unMute");
+      document.getElementById("toggleGlobalAudioBtn").textContent = isGlobalMuted ? "Unmute" : "Mute";
+    };
+    document.getElementById("globalPlayPauseBtn").onclick = () => {
+      globalPaused = !globalPaused;
+      ytCmd(document.getElementById("globalYtPlayer"), globalPaused ? "pauseVideo" : "playVideo");
+      document.getElementById("globalPlayPauseBtn").textContent = globalPaused ? "▶ Play" : "⏸ Pause";
+    };
+    document.getElementById("startBroadcastBtn").onclick = () => {
+      const vid = extractYouTubeId(document.getElementById("broadcastUrl").value.trim());
+      if (!vid) return toast("Valid YouTube link daalo");
+      state.broadcast = { vid, startedBy: state.currentUser.name, startedAt: Date.now() };
+      syncToCloud(["broadcast"]);
+      toast("Broadcasting to all students!");
+    };
+    document.getElementById("stopBroadcastBtn").onclick = () => { state.broadcast = null; syncToCloud(["broadcast"]); };
+
+    // normal radio
+    let radioPaused = false, radioMuted = false;
+    const radioFrame = document.getElementById("ytPlayerFrame");
+    document.getElementById("playCustomYtBtn").onclick = () => {
+      const vid = extractYouTubeId(document.getElementById("customYtUrl").value.trim());
+      if (!vid) return toast("Valid YouTube link daalo");
+      radioFrame.src = ytUrl(vid);
+      radioPaused = false;
+      document.getElementById("radioPlayPauseBtn").textContent = "⏸ Pause";
+    };
+    document.getElementById("radioPlayPauseBtn").onclick = () => {
+      radioPaused = !radioPaused;
+      ytCmd(radioFrame, radioPaused ? "pauseVideo" : "playVideo");
+      document.getElementById("radioPlayPauseBtn").textContent = radioPaused ? "▶ Play" : "⏸ Pause";
+    };
+    document.getElementById("radioMuteBtn").onclick = () => {
+      radioMuted = !radioMuted;
+      ytCmd(radioFrame, radioMuted ? "mute" : "unMute");
+      document.getElementById("radioMuteBtn").textContent = radioMuted ? "🔊 Unmute" : "🔇 Mute";
+    };
+    document.getElementById("radioVol").oninput = (e) => ytCmd(radioFrame, "setVolume", [Number(e.target.value)]);
+
+    // =====================================================
+    // SESSION TIMER (Current Desk)
+    // =====================================================
+    function sessionSeconds() {
+      let t = state.sessionAcc || 0;
+      if (state.mySeat && !state.isPaused && state.studySince) t += (Date.now() - state.studySince) / 1000;
+      return t;
+    }
+    function fmtClock(s) {
+      s = Math.max(0, Math.floor(s));
+      const p = n => String(n).padStart(2, "0");
+      return `${p(Math.floor(s / 3600))}:${p(Math.floor((s % 3600) / 60))}:${p(s % 60)}`;
+    }
+    function updateSessionUI() {
+      const el = document.getElementById("sessionTimer");
+      const meta = document.getElementById("sessionMeta");
+      if (!state.mySeat) { el.textContent = "00:00:00"; if (meta) meta.textContent = "Desk par baitho aur timer shuru karo"; return; }
+      el.textContent = fmtClock(sessionSeconds());
+      const since = state.seatedAt ? new Date(state.seatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "--";
+      if (meta) meta.textContent = `${state.isPaused ? "⏸ Paused" : "🟢 Studying"} • Since ${since} • Aaj total ${fmtHours(totalToday())}`;
+    }
+
+    // =====================================================
+    // VIDEO CALL PICTURE-IN-PICTURE (like Google Meet)
+    // =====================================================
+    const pipBtn = document.getElementById("pipBtn");
+    const pipCanvas = document.getElementById("pipCanvas");
+    const pipCtx = pipCanvas.getContext("2d");
+    const pipVideo = document.getElementById("pipVideo");
+    const pipFloat = document.getElementById("pipFloat");
+    let pipWorker = null, pipFloatDismissed = false;
+
+    function pipTiles() {
+      const list = [];
+      for (const pid in remoteVideoStreams) {
+        const info = peerInfo[pid] || {};
+        list.push({ id: pid, name: info.userName || "Student", video: document.getElementById("remote_video_" + pid),
+          cam: info.cam !== false || !!info.sharing, mic: info.mic !== false, hand: !!info.hand, sharing: !!info.sharing });
+      }
+      const hasCam = !!localMediaStream && localMediaStream.getVideoTracks().length > 0;
+      list.push({ id: "me", name: (state.currentUser ? state.currentUser.name : "You") + " (You)", video: document.getElementById("localVideoStream"),
+        cam: (hasCam && !isCamOff) || isSharing, mic: !isMicMuted, hand: isHandUp, sharing: isSharing });
+      return list.slice(0, 9);
+    }
+    function rr(x, y, w, h, r) {
+      pipCtx.beginPath();
+      pipCtx.moveTo(x + r, y); pipCtx.arcTo(x + w, y, x + w, y + h, r); pipCtx.arcTo(x + w, y + h, x, y + h, r);
+      pipCtx.arcTo(x, y + h, x, y, r); pipCtx.arcTo(x, y, x + w, y, r); pipCtx.closePath();
+    }
+    function drawPipTile(t, x, y, w, h, small) {
+      pipCtx.save();
+      rr(x, y, w, h, 10); pipCtx.clip();
+      pipCtx.fillStyle = "#111827"; pipCtx.fillRect(x, y, w, h);
+      const v = t.video;
+      if (t.cam && v && v.videoWidth && v.readyState >= 2) {
+        const vr = v.videoWidth / v.videoHeight, tr = w / h;
+        if (t.sharing) {                          // screen share: show whole screen
+          let dw = w, dh = w / vr; if (dh > h) { dh = h; dw = h * vr; }
+          pipCtx.fillStyle = "#000"; pipCtx.fillRect(x, y, w, h);
+          pipCtx.drawImage(v, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+        } else {                                  // camera: crop to fill
+          let sw = v.videoWidth, sh = v.videoHeight, sx = 0, sy = 0;
+          if (vr > tr) { sw = sh * tr; sx = (v.videoWidth - sw) / 2; } else { sh = sw / tr; sy = (v.videoHeight - sh) / 2; }
+          pipCtx.drawImage(v, sx, sy, sw, sh, x, y, w, h);
+        }
+      } else {
+        const r = Math.min(w, h) * 0.22;
+        pipCtx.fillStyle = "#2563eb"; pipCtx.beginPath(); pipCtx.arc(x + w / 2, y + h / 2, r, 0, Math.PI * 2); pipCtx.fill();
+        pipCtx.fillStyle = "#fff"; pipCtx.font = `bold ${Math.round(r * 1.1)}px sans-serif`; pipCtx.textAlign = "center"; pipCtx.textBaseline = "middle";
+        pipCtx.fillText((t.name || "?").charAt(0).toUpperCase(), x + w / 2, y + h / 2 + 2);
+      }
+      pipCtx.textAlign = "left"; pipCtx.textBaseline = "alphabetic";
+      const fs = small ? 11 : 15;
+      const label = (t.hand ? "✋ " : "") + t.name + (t.mic ? "" : " 🔇");
+      pipCtx.font = `600 ${fs}px sans-serif`;
+      const tw = Math.min(w - 12, pipCtx.measureText(label).width + 12);
+      pipCtx.fillStyle = "rgba(0,0,0,.65)"; rr(x + 6, y + h - fs - 12, tw, fs + 8, 6); pipCtx.fill();
+      pipCtx.fillStyle = "#fff"; pipCtx.fillText(label, x + 12, y + h - 8, tw - 10);
+      pipCtx.restore();
+    }
+    function renderPip() {
+      const W = 640, H = 360;
+      pipCtx.fillStyle = "#030712"; pipCtx.fillRect(0, 0, W, H);
+      if (!inCall) {
+        if (pipFloat.style.display !== "none") pipFloat.style.display = "none";
+        pipCtx.fillStyle = "#94a3b8"; pipCtx.font = "bold 22px sans-serif"; pipCtx.textAlign = "center";
+        pipCtx.fillText("Study Hub - call join karo", W / 2, H / 2); pipCtx.textAlign = "left";
+        return;
+      }
+      const tiles = pipTiles(), gap = 8;
+      const big = tiles.find(t => t.id === pinnedId) || tiles.find(t => t.sharing && t.id !== "me");
+      if (big && tiles.length > 1) {
+        const others = tiles.filter(t => t !== big).slice(0, 4);
+        const sh = 82, sw = (W - gap * (others.length + 1)) / others.length;
+        drawPipTile(big, gap, gap, W - gap * 2, H - sh - gap * 3, false);
+        others.forEach((t, i) => drawPipTile(t, gap + i * (sw + gap), H - sh - gap, sw, sh, true));
+      } else {
+        const n = tiles.length, cols = n <= 1 ? 1 : n <= 4 ? 2 : 3, rows = Math.ceil(n / cols);
+        const tw = (W - gap * (cols + 1)) / cols, th = (H - gap * (rows + 1)) / rows;
+        tiles.forEach((t, i) => drawPipTile(t, gap + (i % cols) * (tw + gap), gap + Math.floor(i / cols) * (th + gap), tw, th, n > 2));
+      }
+      const s = Math.floor((Date.now() - callStart) / 1000);
+      pipCtx.fillStyle = "rgba(0,0,0,.6)"; rr(W - 78, 12, 66, 22, 6); pipCtx.fill();
+      pipCtx.fillStyle = "#10b981"; pipCtx.font = "bold 13px monospace";
+      pipCtx.fillText(String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0"), W - 68, 28);
+    }
+    function startPipLoop() {
+      if (pipWorker) return;
+      try {   // worker timer keeps running when the app is in background / PiP
+        const url = URL.createObjectURL(new Blob(["setInterval(()=>postMessage(1),70)"], { type: "text/javascript" }));
+        pipWorker = new Worker(url);
+        pipWorker.onmessage = renderPip;
+      } catch (e) { pipWorker = setInterval(renderPip, 100); }
+    }
+    async function ensurePipStream() {
+      startPipLoop();
+      if (!pipVideo.srcObject) {
+        try { pipVideo.srcObject = pipCanvas.captureStream(15); pipVideo.muted = true; await pipVideo.play(); } catch (e) {}
+      }
+      try { pipVideo.autoPictureInPicture = true; } catch (e) {}
+      try {   // auto-open PiP when the user leaves the app during a call (supported browsers)
+        navigator.mediaSession.setActionHandler("enterpictureinpicture", () => { pipVideo.requestPictureInPicture().catch(() => {}); });
+      } catch (e) {}
+    }
+    function showFloat(on) {
+      pipFloat.style.display = on ? "block" : "none";
+      if (on) renderPip();
+    }
+    pipBtn.onclick = async () => {
+      if (!inCall) return toast("Pehle video call join karo");
+      await ensurePipStream();
+      try {
+        if (document.pictureInPictureElement) { await document.exitPictureInPicture(); return; }
+        if (pipFloat.style.display !== "none") { showFloat(false); pipFloatDismissed = true; return; }
+        if (document.pictureInPictureEnabled && pipVideo.requestPictureInPicture) {
+          renderPip();
+          await pipVideo.requestPictureInPicture();
+          toast("Video call PiP ON");
+          return;
+        }
+        throw new Error("no-native-pip");
+      } catch (e) {            // WebView / unsupported: in-app floating call window
+        pipFloatDismissed = false;
+        showFloat(true);
+        toast("Floating call window ON");
+      }
+    };
+    document.getElementById("pipFloatClose").onclick = () => { showFloat(false); pipFloatDismissed = true; };
+    function onTabChangedForPip(targetId) {
+      if (!inCall) return;
+      if (targetId === "tab-library") { showFloat(false); pipFloatDismissed = false; }
+      else if (!pipFloatDismissed && !document.pictureInPictureElement) showFloat(true);
+    }
+    (function dragFloat() {   // drag the floating window
+      let sx, sy, ox, oy, dragging = false;
+      pipFloat.addEventListener("pointerdown", e => {
+        if (e.target.id === "pipFloatClose") return;
+        dragging = true; const r = pipFloat.getBoundingClientRect();
+        sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top; pipFloat.setPointerCapture(e.pointerId);
+      });
+      pipFloat.addEventListener("pointermove", e => {
+        if (!dragging) return;
+        pipFloat.style.left = Math.max(0, Math.min(window.innerWidth - pipFloat.offsetWidth, ox + e.clientX - sx)) + "px";
+        pipFloat.style.top = Math.max(0, Math.min(window.innerHeight - pipFloat.offsetHeight, oy + e.clientY - sy)) + "px";
+        pipFloat.style.right = "auto"; pipFloat.style.bottom = "auto";
+      });
+      pipFloat.addEventListener("pointerup", () => { dragging = false; });
+    })();
+
+
+    // ===== v3: settings, layouts, auto seat =====
+    let settings = { theme: "light", joinMuted: true, mirror: false, layout: "auto", breakRem: true, goalH: 0 };
+    try { Object.assign(settings, JSON.parse(localStorage.getItem("sh_settings") || "{}")); } catch (e) {}
+    function applySettings() {
+      const dark = settings.theme === "dark" || (settings.theme === "auto" && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+      document.documentElement.setAttribute("data-theme", ["ocean", "forest", "sunset", "midnight"].includes(settings.theme) ? settings.theme : (dark ? "dark" : "light"));
+      const g = $id("videoGridContainer");
+      g.style.gridTemplateColumns = { c2: "repeat(2,1fr)", c3: "repeat(3,1fr)", c4: "repeat(4,1fr)" }[settings.layout] || "";
+      if (settings.layout === "speaker") { const f = Object.keys(peerConnections)[0]; if (f && !pinnedId) setPinned(f); }
+      else if (pinnedId && g.dataset.spk) setPinned(null);
+      g.dataset.spk = settings.layout === "speaker" ? "1" : "";
+      if (typeof lucide !== "undefined") lucide.createIcons();
+    }
+    function saveSettings() { try { localStorage.setItem("sh_settings", JSON.stringify(settings)); } catch (e) {} applySettings(); }
+    function openSettings() {
+      $id("setTheme").value = settings.theme; $id("setJoinMuted").checked = settings.joinMuted;
+      $id("setMirror").checked = settings.mirror; $id("setLayout").value = settings.layout;
+      $id("settingsModal").style.display = "flex";
+    }
+    $id("settingsBtn").onclick = openSettings;
+    $id("closeSettingsBtn").onclick = () => { $id("settingsModal").style.display = "none"; };
+    $id("setTheme").onchange = e => { settings.theme = e.target.value; saveSettings(); };
+    $id("setJoinMuted").onchange = e => { settings.joinMuted = e.target.checked; saveSettings(); };
+    $id("setMirror").onchange = e => { settings.mirror = e.target.checked; saveSettings(); };
+    $id("setLayout").onchange = e => { settings.layout = e.target.value; saveSettings(); };
+    $id("setProfileBtn").onclick = () => {
+      $id("settingsModal").style.display = "none";
+      const tab = $id("profName") && $id("profName").closest(".tab-content");
+      if (tab) switchTab(tab.id); else toast("Profile section drawer mein hai");
+    };
+    // quick grid selector above the call grid
+    (function () {
+      const bar = document.createElement("div");
+      bar.style = "display:flex; justify-content:flex-end; align-items:center; gap:6px; padding:6px 10px; font-size:11px;";
+      bar.innerHTML = '<span style="color:var(--text-mute);">Grid:</span><select id="quickLayout" style="width:auto; margin:0; padding:4px 8px; font-size:12px;"><option value="auto">Normal</option><option value="c2">2 per row</option><option value="c3">3 per row</option><option value="c4">4 per row</option><option value="speaker">Speaker</option></select>';
+      const g = $id("videoGridContainer"); g.parentNode.insertBefore(bar, g);
+      const q = bar.querySelector("select"); q.value = settings.layout;
+      q.onchange = () => { settings.layout = q.value; saveSettings(); };
+      const clr = document.createElement("button");
+      clr.className = "btn btn-sm btn-outline"; clr.textContent = "🗑 Clear chat"; clr.style.marginBottom = "8px";
+      clr.onclick = () => { if (inCall && confirm("Call chat sabke liye clear karein?")) { rtdb.ref(`${ROOM}/chat`).remove(); $id("callChatLog").innerHTML = ""; } };
+      $id("callPanelChat").insertBefore(clr, $id("callChatLog"));
+    })();
+    // mirror only the local front preview (setting)
+    setInterval(() => {
+      const v = $id("localVideoStream");
+      if (v) v.style.transform = settings.mirror && !isSharing && currentFacingMode === "user" ? "scaleX(-1)" : "none";
+    }, 700);
+    // every user gets a free desk automatically (timer starts with the desk)
+    function autoSeat() {
+      if (!state.currentUser || state.isOwner || state.mySeat) return;
+      for (let i = 1; i <= TOTAL_DESKS; i++) {
+        const id = "D-" + String(i).padStart(2, "0");
+        if (!liveOcc(state.roomOccupants[id])) { claimSeat(id); toast("Desk " + id + " assigned"); return; }
+      }
+    }
+    applySettings();
+
+
+    // ===== v4: Chat v2 (group + personal), profiles, presence =====
+    const C2 = { room: "g", data: { m: {}, seen: {} }, profiles: {}, imgs: {}, known: null, sel: null, built: 0, forceBottom: true };
+    const c2me = () => emailKey(state.currentUser.email);
+    const c2hue = k => { let h = 0; for (const c of String(k)) h = (h * 31 + c.charCodeAt(0)) % 360; return h; };
+    const c2vis = () => { const t = $id("tab-chat"); return t && t.offsetParent !== null; };
+    const c2nameOf = k => (C2.profiles[k] && C2.profiles[k].name) || ((state.users || []).find(u => emailKey(u.email) === k) || {}).name || "Member";
+    const c2time = t => new Date(t).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    $id("tab-chat").innerHTML = `<div class="card" style="padding:0; overflow:hidden;">
+      <div style="padding:8px 10px; border-bottom:1px solid var(--card-border); display:flex; gap:8px; align-items:center;">
+        <select id="c2Room" style="flex:1; margin:0;"></select>
+        <button class="btn btn-danger btn-sm" id="adminCleanChatBtn" style="display:none;"><i data-lucide="trash-2"></i> Clear</button>
+      </div>
+      <div id="c2Box" style="height:min(62vh,540px); overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:8px; background:var(--surface);"></div>
+      <div style="display:flex; gap:6px; padding:8px; border-top:1px solid var(--card-border); align-items:center;">
+        <button class="btn btn-outline btn-sm" id="c2Img">📷</button>
+        <button class="btn btn-outline btn-sm" id="c2Inv" style="display:none;" title="Invite to play">🎮</button>
+        <input type="text" id="c2Input" placeholder="Type a message..." style="flex:1; margin:0; font-size:16px; min-width:0;">
+        <button class="btn btn-primary btn-sm" id="c2Send">Send</button>
+        <input type="file" id="c2File" accept="image/*" style="display:none;">
+      </div>
+      <div style="display:none;"><div id="chatContainer"></div><input id="chatInput"><button id="sendChatBtn"></button></div>
+    </div>`;
+    renderChatMessages = function () {};
+
+    function c2Avatar(k, size) {
+      const p = C2.profiles[k], h = c2hue(k);
+      if (p && p.dp) return `<img src="${p.dp}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;">`;
+      return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:hsl(${h},65%,45%);color:#fff;display:flex;align-items:center;justify-content:center;font-size:${Math.round(size * .45)}px;font-weight:700;flex-shrink:0;">${escapeHtml(c2nameOf(k).charAt(0).toUpperCase())}</div>`;
+    }
+    function c2RoomsMine() {
+      const mk = c2me();
+      return Object.keys(C2.data.m || {}).filter(r => r === "g" || r.slice(2).split("__").includes(mk));
+    }
+    function c2Msgs(room) {
+      const mk = c2me();
+      return Object.values((C2.data.m || {})[room] || {}).filter(m => !(m.del && m.del[mk])).sort((a, b) => a.time - b.time);
+    }
+    function c2Unread(room) {
+      const mk = c2me(), seenT = (((C2.data.seen || {})[room] || {})[mk] || {}).time || 0;
+      return c2Msgs(room).filter(m => m.from !== mk && !m.gone && m.time > seenT).length;
+    }
+    function c2Badge() {
+      const n = state.currentUser ? c2RoomsMine().reduce((a, r) => a + c2Unread(r), 0) : 0;
+      ["bottomChatCountBadge", "drawerChatCountBadge"].forEach(id => {
+        const b = $id(id); if (!b) return;
+        b.textContent = n > 99 ? "99+" : n; b.style.display = n > 0 ? "inline-block" : "none";
+      });
+    }
+    handleChatBadge = c2Badge;
+
+    function c2Build() {
+      const sel = $id("c2Room"), mk = c2me();
+      const users = (state.users || []).filter(u => emailKey(u.email) !== mk);
+      const sig = users.length + "|" + sel.options.length;
+      if (C2.built !== users.length || sel.options.length !== users.length + 1) {
+        const cur = C2.room; sel.innerHTML = "";
+        sel.add(new Option("👥 Group Chat", "g"));
+        users.forEach(u => sel.add(new Option("👤 " + u.name, "d_" + [mk, emailKey(u.email)].sort().join("__"))));
+        sel.value = cur; C2.built = users.length;
+      }
+      Array.from(sel.options).forEach(o => {
+        const n = c2Unread(o.value);
+        const base = o.value === "g" ? "👥 Group Chat" : "👤 " + c2nameOf(o.value.slice(2).split("__").find(x => x !== mk) || "");
+        o.text = base + (n ? "  (" + n + ")" : "");
+      });
+      $id("c2Inv").style.display = C2.room === "g" ? "none" : "inline-flex";
+    }
+
+    function c2Render() {
+      const box = $id("c2Box");
+      if (!state.currentUser || !box) return;
+      c2Build(); c2Badge();
+      if (!c2vis()) return;
+      const mk = c2me(), room = C2.room, msgs = c2Msgs(room), seen = (C2.data.seen || {})[room] || {};
+      const stick = C2.forceBottom || box.scrollHeight - box.scrollTop - box.clientHeight < 90;
+      box.innerHTML = msgs.length ? "" : `<div style="text-align:center;font-size:12px;color:var(--text-mute);margin-top:20px;">No messages yet. Say hi 👋</div>`;
+      const lastMine = [...msgs].reverse().find(m => m.from === mk);
+      msgs.forEach(m => {
+        const mine = m.from === mk, h = c2hue(m.from);
+        const row = document.createElement("div");
+        row.style = `display:flex; gap:6px; align-items:flex-end; justify-content:${mine ? "flex-end" : "flex-start"};`;
+        if (!mine) row.insertAdjacentHTML("beforeend", c2Avatar(m.from, 28));
+        const b = document.createElement("div");
+        b.style = `max-width:78%; padding:7px 10px; border-radius:12px; background:hsla(${h},70%,50%,.2); border-left:3px solid hsl(${h},65%,45%); font-size:13px; word-break:break-word;`;
+        if (!mine && room === "g") { const n = document.createElement("div"); n.textContent = c2nameOf(m.from); n.style = `font-size:11px;font-weight:700;color:hsl(${h},65%,42%);`; b.appendChild(n); }
+        if (m.gone) { const g = document.createElement("i"); g.textContent = "🚫 This message was deleted"; g.style.opacity = ".6"; b.appendChild(g); }
+        else {
+          if (m.img) { const im = document.createElement("img"); im.style = "max-width:100%;max-height:220px;border-radius:8px;display:block;margin-bottom:4px;"; c2Img(m.id, im); b.appendChild(im); }
+          if (m.text) { const t = document.createElement("span"); t.textContent = m.text; b.appendChild(t); }
+          if (m.inv) {
+            const bt = document.createElement("button"); bt.className = "btn btn-sm btn-primary"; bt.style.marginTop = "6px";
+            bt.textContent = mine ? "🎮 Waiting for friend..." : "🎮 Join game now"; bt.disabled = mine;
+            bt.onclick = e => { e.stopPropagation(); c2JoinGame(); }; b.appendChild(document.createElement("br")); b.appendChild(bt);
+          }
+        }
+        const tm = document.createElement("div"); tm.textContent = c2time(m.time); tm.style = "font-size:10px;color:var(--text-mute);text-align:right;margin-top:2px;"; b.appendChild(tm);
+        if (mine && lastMine && lastMine.id === m.id) {
+          const viewers = Object.keys(seen).filter(k => k !== mk && seen[k].time >= m.time);
+          const sv = document.createElement("div"); sv.style = "display:flex;gap:2px;justify-content:flex-end;align-items:center;margin-top:3px;font-size:10px;color:var(--text-mute);";
+          sv.innerHTML = viewers.length ? "Seen " + viewers.slice(0, 8).map(k => c2Avatar(k, 16)).join("") : "✓ Delivered";
+          b.appendChild(sv);
+        }
+        if (C2.sel === m.id) {
+          const ac = document.createElement("div"); ac.style = "display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;";
+          const mkb = (label, fn) => { const x = document.createElement("button"); x.className = "btn btn-sm btn-outline"; x.textContent = label; x.onclick = e => { e.stopPropagation(); C2.sel = null; fn(); }; ac.appendChild(x); };
+          mkb("Delete for me", () => ecoRef(`chat2/m/${room}/${m.id}/del/${mk}`).set(true));
+          if ((mine || state.isOwner) && !m.gone) mkb("Delete for everyone", () => { ecoRef(`chat2/m/${room}/${m.id}`).update({ gone: true, text: "", img: null, inv: null }); if (m.img) ecoRef("chat2img/" + m.id).remove(); });
+          b.appendChild(ac);
+        }
+        b.onclick = () => { C2.sel = C2.sel === m.id ? null : m.id; c2Render(); };
+        row.appendChild(b); box.appendChild(row);
+      });
+      if (stick) box.scrollTop = box.scrollHeight;
+      C2.forceBottom = false;
+      c2MarkSeen();
+    }
+    function c2Img(id, el) {
+      if (C2.imgs[id]) { el.src = C2.imgs[id]; return; }
+      ecoRef("chat2img/" + id).once("value", sn => { if (sn.val()) { C2.imgs[id] = sn.val(); el.src = sn.val(); } });
+    }
+    function c2MarkSeen() {
+      if (!state.currentUser || !c2vis()) return;
+      const mk = c2me(), my = (((C2.data.seen || {})[C2.room] || {})[mk] || {}).time || 0;
+      const latest = Math.max(0, ...c2Msgs(C2.room).filter(m => m.from !== mk).map(m => m.time));
+      if (latest > my) ecoRef(`chat2/seen/${C2.room}/${mk}`).set({ name: state.currentUser.name, time: Date.now() });
+    }
+    function c2Send(text, img, inv) {
+      if (!state.currentUser || (!text && !img)) return;
+      const id = "m" + Date.now() + Math.random().toString(36).slice(2, 6);
+      const m = { id, from: c2me(), name: state.currentUser.name, text: text || "", time: Date.now() };
+      if (img) { m.img = true; ecoRef("chat2img/" + id).set(img); C2.imgs[id] = img; }
+      if (inv) m.inv = inv;
+      ecoRef(`chat2/m/${C2.room}/${id}`).set(m);
+      C2.forceBottom = true;
+    }
+    function c2Pop(txt, room) {
+      const p = $id("c2Pop"); p.textContent = "💬 " + txt; p.style.display = "block";
+      p.onclick = () => { p.style.display = "none"; C2.room = room; $id("c2Room").value = room; C2.forceBottom = true; switchTab("tab-chat"); };
+      clearTimeout(c2Pop.t); c2Pop.t = setTimeout(() => { p.style.display = "none"; }, 4000);
+      try { navigator.vibrate && navigator.vibrate(60); } catch (e) {}
+    }
+    function c2JoinGame() {
+      const tab = $id("gameTttTab").closest(".tab-content");
+      switchTab(tab.id); setGameTab("ttt"); joinTtt(state.ttt.pX && state.ttt.pX !== state.currentUser.name ? "O" : "X");
+    }
+
+    ecoRef("chat2").on("value", sn => {
+      const d = sn.val() || {}; C2.data = { m: d.m || {}, seen: d.seen || {} };
+      const ids = new Set(); const fresh = [];
+      Object.keys(C2.data.m).forEach(r => Object.keys(C2.data.m[r]).forEach(id => { ids.add(id); if (C2.known && !C2.known.has(id)) fresh.push([r, C2.data.m[r][id]]); }));
+      if (state.currentUser && C2.known) {
+        const mk = c2me(), mine = c2RoomsMine();
+        fresh.forEach(([r, m]) => {
+          if (m.from === mk || m.gone || !mine.includes(r)) return;
+          if (!(c2vis() && C2.room === r)) c2Pop(`${m.name}: ${m.img && !m.text ? "📷 Photo" : m.inv ? "🎮 Game invite" : m.text}`, r);
+        });
+      }
+      C2.known = ids; c2Render();
+    });
+    ecoRef("profiles").on("value", sn => { C2.profiles = sn.val() || {}; if (state.currentUser) c2Render(); });
+
+    $id("c2Room").onchange = e => { C2.room = e.target.value; C2.sel = null; C2.forceBottom = true; c2Render(); };
+    $id("c2Send").onclick = () => { const i = $id("c2Input"); const t = i.value.trim(); if (t) { c2Send(t); i.value = ""; } };
+    $id("c2Input").addEventListener("keydown", e => { if (e.key === "Enter") $id("c2Send").onclick(); });
+    $id("c2Img").onclick = () => $id("c2File").click();
+    $id("c2File").onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const im = new Image();
+      im.onload = () => {
+        const sc = Math.min(1, 720 / Math.max(im.width, im.height)), cv = document.createElement("canvas");
+        cv.width = im.width * sc; cv.height = im.height * sc; cv.getContext("2d").drawImage(im, 0, 0, cv.width, cv.height);
+        c2Send("", cv.toDataURL("image/jpeg", 0.6));
+      };
+      im.src = URL.createObjectURL(f); e.target.value = "";
+    };
+    $id("c2Inv").onclick = () => { joinTtt("X"); c2Send("Let's play Tic-Tac-Toe!", null, "ttt"); };
+    $id("adminCleanChatBtn").onclick = () => { if (confirm("Group chat clear karein?")) { ecoRef("chat2/m/g").remove(); } };
+    const _tabHook = onTabChangedForPip;
+    onTabChangedForPip = function (t) { _tabHook(t); if (t === "tab-chat") { C2.forceBottom = true; setTimeout(c2Render, 50); } };
+
+    // profile (photo 1:1 + exam) saved in database, separate from login data
+    let profDp = "";
+    $id("setDpBtn").onclick = () => {
+      const p = C2.profiles[c2me()] || {};
+      profDp = p.dp || ""; $id("profExam").value = p.exam || state.currentUser.goal || "";
+      $id("profDpPrev").src = profDp || "data:image/gif;base64,R0lGODlhAQABAAAAACw=";
+      $id("settingsModal").style.display = "none"; $id("profileModal").style.display = "flex";
+    };
+    $id("closeProfBtn").onclick = () => { $id("profileModal").style.display = "none"; };
+    $id("profDpFile").onchange = e => {
+      const f = e.target.files[0]; if (!f) return;
+      const im = new Image();
+      im.onload = () => {
+        const n = Math.min(im.width, im.height), cv = document.createElement("canvas"); cv.width = cv.height = 256;
+        cv.getContext("2d").drawImage(im, (im.width - n) / 2, (im.height - n) / 2, n, n, 0, 0, 256, 256);
+        profDp = cv.toDataURL("image/jpeg", 0.8); $id("profDpPrev").src = profDp;
+      };
+      im.src = URL.createObjectURL(f);
+    };
+    $id("profSaveBtn").onclick = () => {
+      ecoRef("profiles/" + c2me()).set({ name: state.currentUser.name, exam: $id("profExam").value.trim(), dp: profDp });
+      $id("profileModal").style.display = "none"; toast("Profile saved");
+    };
+
+    // leave/close/logout => desk is released automatically (no ghost "online")
+    setInterval(() => { if (state.mySeat && cloudReady) ecoRef("roomOccupants/" + state.mySeat).onDisconnect().remove(); }, 5000);
+
+
+    // ===== v5: permanent study time + login count linked to account =====
+    let studyUser = null, studyMax = {}, studyBusy = false;
+    async function studySync() {
+      if (!state.currentUser || !cloudReady || studyBusy) return;
+      studyBusy = true;
+      try {
+        const k = emailKey(state.currentUser.email), ref = ecoRef("studyLogs/" + k);
+        if (studyUser !== k) {
+          studyUser = k; studyMax = {};
+          const d = (await ref.once("value")).val() || {};
+          Object.entries(d.daily || {}).forEach(([day, sec]) => { studyMax[day] = sec; });
+          ref.child("logins/" + getTodayKey()).transaction(c => (c || 0) + 1);
+          ref.child("totalLogins").transaction(c => (c || 0) + 1);
+          ref.update({ name: state.currentUser.name, email: state.currentUser.email });
+        }
+        const upd = {}; let total = 0;
+        Object.entries(state.dailyLogs || {}).forEach(([day, sec]) => { studyMax[day] = Math.max(studyMax[day] || 0, Math.round(sec)); });
+        Object.entries(studyMax).forEach(([day, sec]) => {   // never lose time, even if an old copy overwrote state
+          if ((state.dailyLogs[day] || 0) < sec) state.dailyLogs[day] = sec;
+          upd["daily/" + day] = sec; total += sec;
+        });
+        upd.total = total;
+        await ref.update(upd);
+      } catch (e) { console.warn("studySync", e); }
+      studyBusy = false;
+    }
+    setInterval(studySync, 20000);
+    setTimeout(studySync, 4000);
+    window.addEventListener("pagehide", () => { try { studySync(); } catch (e) {} });
+
+    function studyStats() {
+      if (!state.currentUser) return;
+      ecoRef("studyLogs/" + emailKey(state.currentUser.email)).once("value", sn => {
+        const d = sn.val() || {}, today = getTodayKey();
+        $id("stAll").textContent = fmtHours(d.total || 0);
+        $id("stToday").textContent = fmtHours((d.daily || {})[today] || 0);
+        $id("stLogins").textContent = (d.totalLogins || 0) + " / " + ((d.logins || {})[today] || 0);
+      });
+    }
+    const _openSettings = openSettings;
+    openSettings = function () { _openSettings(); studyStats(); };
+    $id("settingsBtn").onclick = openSettings;
+
+
+    // ===== v6: break reminder + daily goal =====
+    const _openSettings2 = openSettings;
+    openSettings = function () { _openSettings2(); $id("setBreak").checked = !!settings.breakRem; $id("setGoal").value = settings.goalH || 0; };
+    $id("settingsBtn").onclick = openSettings;
+    $id("setBreak").onchange = e => { settings.breakRem = e.target.checked; saveSettings(); };
+    $id("setGoal").onchange = e => { settings.goalH = Math.max(0, Math.min(16, parseFloat(e.target.value) || 0)); saveSettings(); };
+    let lastBreakMark = 0, goalDay = "";
+    setInterval(() => {
+      if (!state.currentUser || !state.mySeat || state.isPaused) return;
+      const mark = Math.floor(sessionSeconds() / 3000);
+      if (mark < lastBreakMark) lastBreakMark = mark;
+      if (settings.breakRem && mark > lastBreakMark) { lastBreakMark = mark; toast("☕ 50 minute ho gaye — 5 minute ka break lo"); }
+      if (settings.goalH > 0 && goalDay !== getTodayKey() && totalToday() >= settings.goalH * 3600) { goalDay = getTodayKey(); toast("🎯 Daily goal complete! Great work"); }
+    }, 30000);
+
+    // Tab Switcher
+    function switchTab(targetId) {
+      document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".drawer-nav-item").forEach(b => b.classList.remove("active"));
+      document.querySelectorAll("nav.bottom-nav button").forEach(b => b.classList.remove("active"));
+
+      const targetTab = document.getElementById(targetId);
+      if (targetTab) targetTab.classList.add("active");
+      const navBtn = document.querySelector(`nav.bottom-nav button[data-tab="${targetId}"]`);
+      if (navBtn) navBtn.classList.add("active");
+      const drawerBtn = document.querySelector(`.drawer-nav-item[data-tab="${targetId}"]`);
+      if (drawerBtn) drawerBtn.classList.add("active");
+
+      if (targetId === "tab-chat") {
+        state.lastReadChatCount = state.chat.length;
+        saveLocal();
+        handleChatBadge();
+      }
+      if (typeof onTabChangedForPip === "function") onTabChangedForPip(targetId);
+      closeDrawer();
+    }
+
+    document.querySelectorAll("nav.bottom-nav button, .drawer-nav-item").forEach(btn => {
+      btn.onclick = () => {
+        const target = btn.getAttribute("data-tab");
+        if (target) switchTab(target);
+      };
+    });
+
+    document.getElementById("themeToggleBtn").onclick = () => {
+      const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+      document.documentElement.setAttribute("data-theme", isDark ? "light" : "dark");
+    };
+
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+      }[tag] || tag));
+    }
+
+    function toast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2200);
+    }
+  </script>
+</body>
+</html>
